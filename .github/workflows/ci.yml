@@ -7,10 +7,16 @@ on:
 permissions:
   contents: read
 jobs:
-  macos-python312:
-    name: macOS · Python 3.12 · synthetic tests
-    runs-on: macos-latest
+  desktop:
+    name: ${{ matrix.os }} · Python 3.12 · synthetic tests
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 30
+    env:
+      PYTHONUTF8: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -20,13 +26,30 @@ jobs:
           cache-dependency-path: |
             requirements.txt
             requirements-test.txt
-      - name: Prepare local OCR and PDF dependencies
+      - name: Prepare macOS local OCR and PDF dependencies
+        if: runner.os == 'macOS'
         run: |
           brew install tesseract poppler
           mkdir -p "$RUNNER_TEMP/becca-tessdata"
           cp "$(brew --prefix tesseract)/share/tessdata/eng.traineddata" "$RUNNER_TEMP/becca-tessdata/"
           curl --fail --location --retry 3 https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/chi_sim.traineddata -o "$RUNNER_TEMP/becca-tessdata/chi_sim.traineddata"
           echo "TESSDATA_PREFIX=$RUNNER_TEMP/becca-tessdata" >> "$GITHUB_ENV"
+      - name: Prepare Windows local OCR and PDF dependencies
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install tesseract poppler --no-progress -y
+          if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed' }
+          $ocr = 'C:\Program Files\Tesseract-OCR'
+          $pdf = Get-ChildItem 'C:\ProgramData\chocolatey\lib\poppler*' -Filter pdftoppm.exe -Recurse | Select-Object -First 1
+          if (-not $pdf) { throw 'PDF dependency missing' }
+          $ocr | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $pdf.DirectoryName | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          $data = Join-Path $env:RUNNER_TEMP 'becca-tessdata'
+          New-Item -ItemType Directory -Force $data | Out-Null
+          Copy-Item "$ocr\tessdata\eng.traineddata" $data
+          Invoke-WebRequest 'https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/chi_sim.traineddata' -OutFile "$data\chi_sim.traineddata"
+          "TESSDATA_PREFIX=$data" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Install runtime and synthetic test dependencies
         run: python -m pip install -r requirements.txt -r requirements-test.txt
       - name: Validate release structure and privacy exclusions
@@ -35,14 +58,16 @@ jobs:
           python scripts/lpc.py doctor
           node --check assets/ui/app.js
       - name: Diagnose generated raster and OCR compatibility
+        shell: bash
         run: python scripts/diagnose_ci.py --output "$RUNNER_TEMP/becca-diagnostics"
       - name: Run synthetic regression tests
+        shell: bash
         run: python -m pytest tests -q --junitxml="$RUNNER_TEMP/becca-junit.xml"
-      - name: Upload test results only
+      - name: Upload synthetic test results only
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: synthetic-test-results
+          name: synthetic-test-results-${{ runner.os }}
           path: |
             ${{ runner.temp }}/becca-junit.xml
             ${{ runner.temp }}/becca-diagnostics/

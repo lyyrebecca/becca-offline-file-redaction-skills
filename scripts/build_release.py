@@ -17,10 +17,10 @@ def build(destination):
     destination.mkdir(parents=True,exist_ok=True)
     files=list(selected(ROOT));dest=destination/f'becca-offline-file-redaction-skills-v{version}.zip'
     if any(p.is_relative_to(destination) for p in files):raise ValueError('BUILD_DESTINATION_MUST_BE_EXCLUDED_OR_OUTSIDE_PROJECT')
-    manifest={'name':brand['name'],'version':version,'archive_root':'legal-privacy-cloak','files':{str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in files}}
+    manifest={'name':brand['name'],'version':version,'archive_root':'legal-privacy-cloak','files':{p.relative_to(ROOT).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in files}}
     with zipfile.ZipFile(dest,'w',zipfile.ZIP_DEFLATED) as z:
         for p in files:
-            rel=Path('legal-privacy-cloak')/p.relative_to(ROOT);info=zipfile.ZipInfo(str(rel),(2026,10,26,0,0,0));info.compress_type=zipfile.ZIP_DEFLATED;info.external_attr=(0o100755 if p.stat().st_mode&0o111 else 0o100644)<<16;z.writestr(info,p.read_bytes())
+            rel=Path('legal-privacy-cloak')/p.relative_to(ROOT);info=zipfile.ZipInfo(rel.as_posix(),(2026,10,26,0,0,0));info.compress_type=zipfile.ZIP_DEFLATED;info.external_attr=(0o100755 if p.stat().st_mode&0o111 else 0o100644)<<16;z.writestr(info,p.read_bytes())
     with zipfile.ZipFile(dest) as z:
         if z.testzip():raise ValueError('ARCHIVE_INTEGRITY_FAILED')
     manifest['archive_sha256']=hashlib.sha256(dest.read_bytes()).hexdigest()

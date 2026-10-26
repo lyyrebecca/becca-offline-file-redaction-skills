@@ -15,9 +15,14 @@ PERSON='赵测试';PHONE='13812345678';EMAIL='fixture.person@example.test';ID='1
 TEXT=f'原告：{PERSON}，被告：{ORG}。\n电话：{PHONE}；邮箱：{EMAIL}。\n身份证：{ID}；账号：{ACCOUNT}。\n住址：北京市朝阳区合成路99号。\n项目代号：{SECRET}。\n合同编号：HT-2026-001；案号：（2026）京0105民初123号。\n合同价款为120000元，2026年10月23日履行。北京市朝阳区人民法院受理。\n张某唯一持有73.27%股权的创始人。'
 DICT={'terms':[{'text':PERSON,'kind':'PERSON','entity':'client1'},{'text':ORG,'kind':'ORG','entity':'company1'},{'text':SECRET,'kind':'SECRET','entity':'project1'}]}
 
+def fixture_font():
+    import os
+    choices=[Path('/System/Library/Fonts/Supplemental/Arial.ttf'),Path(os.environ.get('WINDIR','C:/Windows'))/'Fonts/arial.ttf',Path('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf')]
+    return ImageFont.truetype(str(next(p for p in choices if p.is_file())),50)
+
 def image():
     im=Image.new('RGB',(1600,650),'white');d=ImageDraw.Draw(im)
-    font=ImageFont.truetype('/System/Library/Fonts/Supplemental/Arial.ttf',50)
+    font=fixture_font()
     d.text((65,80),'Synthetic legal exhibit',font=font,fill='black')
     d.text((65,220),f'Phone: {PHONE}',font=font,fill='black')
     d.text((65,360),f'Email: {EMAIL}',font=font,fill='black')

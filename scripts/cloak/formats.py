@@ -45,9 +45,12 @@ def _ocr(data):
     # Run with a private temp directory; stdout is parsed internally, never forwarded to an Agent.
     with tempfile.TemporaryDirectory(prefix='lpc-ocr-') as td:
         p=Path(td)/'image.png';p.write_bytes(data)
-        raw=run(['tesseract',str(p),'stdout','-l','chi_sim+eng','--psm','11','tsv']).decode('utf-8')
+        raw=run(['tesseract',str(p),'stdout','-l','chi_sim+eng','--psm','11','-c','tessedit_create_tsv=1']).decode('utf-8-sig')
+    reader=csv.DictReader(io.StringIO(raw),delimiter='\t',quoting=csv.QUOTE_NONE)
+    required={'level','text','left','top','width','height','conf','page_num','block_num','par_num','line_num'}
+    if not required.issubset(reader.fieldnames or []):raise ValueError('OCR_OUTPUT_INVALID')
     groups={}
-    for row in csv.DictReader(io.StringIO(raw),delimiter='\t',quoting=csv.QUOTE_NONE):
+    for row in reader:
         if row.get('level')!='5' or not row.get('text','').strip():continue
         key=tuple(row.get(x) for x in ['page_num','block_num','par_num','line_num'])
         groups.setdefault(key,[]).append(row)

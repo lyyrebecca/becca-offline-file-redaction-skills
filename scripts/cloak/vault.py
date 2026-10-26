@@ -13,7 +13,8 @@ def atomic(path,data):
     path=Path(path);path.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
     fd,tmp=tempfile.mkstemp(prefix='.lpc-',dir=path.parent)
     try:
-        os.fchmod(fd,0o600)
+        if os.name!='nt':os.fchmod(fd,0o600)
+        # Windows uses the user-profile ACL; POSIX mode bits are not an ACL guarantee.
         with os.fdopen(fd,'wb') as f:f.write(data);f.flush();os.fsync(f.fileno())
         os.replace(tmp,path)
     finally:

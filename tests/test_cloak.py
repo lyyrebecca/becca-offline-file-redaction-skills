@@ -55,7 +55,9 @@ def test_vault_authentication(tmp_path,mutation):
     if mutation=='truncated':p.write_bytes(p.read_bytes()[:15])
     with pytest.raises(Exception):open_vault(p,'different-passphrase' if mutation=='wrong_password' else PW)
 def test_permissions(tmp_path):
-    p=tmp_path/'x';seal(p,{},PW);assert p.stat().st_mode&0o777==0o600
+    p=tmp_path/'x';seal(p,{},PW)
+    if __import__('os').name!='nt':assert p.stat().st_mode&0o777==0o600
+    assert open_vault(p,PW)=={}
 
 @pytest.mark.parametrize('suffix',['.txt','.md','.docx','.xlsx','.pptx'])
 def test_text_office_roundtrip(tmp_path,autojob,suffix):

@@ -16,9 +16,9 @@ for p in root.rglob('*.md'):
 for n in ['README.md','README.en.md','LICENSE','THIRD_PARTY_NOTICES.md','docs/INSTALL.md','docs/VERIFICATION.md','docs/FAQ.md','docs/evidence/ui-acceptance.json','SKILL.md','agents/openai.yaml','assets/brand-icon.jpg','assets/ui-reference.png','assets/ui/index.html','assets/ui/app.js','assets/ui/app.css','开始使用.md']:
     if not (root/n).is_file():errors.append('MISSING:'+n)
 for n in ['scripts/run.sh','信息隐身衣.command']:
-    if not (root/n).stat().st_mode&0o111:errors.append('NOT_EXECUTABLE:'+n)
-brand=json.loads((root/'assets/brand.json').read_text());assert brand['email']=='1849883220@qq.com'
-if brand['email'] not in (root/'assets/ui/index.html').read_text():errors.append('BRAND_EMAIL_MISSING')
+    if sys.platform!='win32' and not (root/n).stat().st_mode&0o111:errors.append('NOT_EXECUTABLE:'+n)
+brand=json.loads((root/'assets/brand.json').read_text('utf-8'));assert brand['email']=='1849883220@qq.com'
+if brand['email'] not in (root/'assets/ui/index.html').read_text('utf-8'):errors.append('BRAND_EMAIL_MISSING')
 for p in selected(root):
     rel=str(p.relative_to(root))
     if p.suffix.lower() in ('.md','.txt','.json','.py','.sh','.yaml','.yml','.html','.js','.css'):

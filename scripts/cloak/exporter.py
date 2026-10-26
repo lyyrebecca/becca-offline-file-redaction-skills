@@ -32,8 +32,9 @@ def index_files(job,pending):
     return {'材料与来源索引.md':('\n'.join(rows)+'\n').encode(),'日期索引.md':('\n'.join(dates)+'\n').encode()}
 
 def ppt_pdf(data):
-    exe=Path('/Applications/LibreOffice.app/Contents/MacOS/soffice')
-    if not exe.exists():raise ValueError('LIBREOFFICE_UNAVAILABLE')
+    from .platforms import libreoffice
+    exe=libreoffice()
+    if exe is None:raise ValueError('LIBREOFFICE_UNAVAILABLE')
     with tempfile.TemporaryDirectory(prefix='lpc-slides-') as tmp:
         root=Path(tmp);p=root/'material.pptx';p.write_bytes(data)
         command=[str(exe),'-env:UserInstallation='+ (root/'profile').as_uri(),'--headless','--convert-to','pdf','--outdir',str(root),str(p)]

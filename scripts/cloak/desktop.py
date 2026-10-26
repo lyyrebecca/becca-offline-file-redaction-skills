@@ -2,7 +2,8 @@
 from __future__ import annotations
 import json,secrets,threading,urllib.parse,webbrowser,subprocess,tempfile,os,shutil,io
 from pathlib import Path
-from http.server import ThreadingHTTPServer,BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler
+from .localhttp import LocalThreadingHTTPServer as ThreadingHTTPServer
 from PIL import Image
 from . import workflow as w
 from .formats import Document,ocr,_ocr
@@ -10,6 +11,7 @@ from .vault import seal,open_vault,atomic
 from .organize import set_assignments,CATEGORIES
 from .scenarios import ROLES,PURPOSES,RECIPIENTS,ROLE_HINTS,scenario_from
 from .core import LABELS,local_model
+from .platforms import data_home,lock_file,open_folder
 
 def exported(job):return bool(job) and any('output_name' in f for f in job.get('files',[]))
 
@@ -176,8 +178,7 @@ def serve(port=0,open_browser=True,ready=None,home=None,singleton_file=None):
                     elif path=='/open':
                         target=Path(state['workspace'])/('share' if data.get('kind')=='share' else 'restored' if data.get('kind')=='restored' else '')
                         if not target.is_dir():raise ValueError('OUTPUT_NOT_FOUND')
-                        result=subprocess.run(['/usr/bin/open',str(target)],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=8)
-                        if result.returncode:raise ValueError('FOLDER_OPEN_FAILED')
+                        open_folder(target)
                     elif path=='/unlock':
                         ws=Path(data['workspace']).expanduser().resolve();pw=data['password'];j=open_vault(ws/'private'/'task.lpcv',pw)
                         documents.clear();state.update(workspace=str(ws),password=pw,job=j,status='DONE' if exported(j) else 'REVIEW',seen=[],error=None,stage='已在本机解锁')
@@ -195,7 +196,7 @@ def serve(port=0,open_browser=True,ready=None,home=None,singleton_file=None):
                     else:raise ValueError('REQUEST_INVALID')
                 self.send({'ok':True})
             except Exception as e:
-                safe={'GROUP_REVIEW_REQUIRED':'请确认文件归属；待确认归属不能直接通过。','ALL_FILES_MUST_BE_REVIEWED':'请逐个检查文件并确认。','UNRESOLVED_STRUCTURAL_BLOCKERS':'文档存在不支持的内容，不能跳过检查。','LOCAL_REVIEW_INCOMPLETE':'请完成全部复核确认。','KEEP_REQUIRES_REASON':'保留敏感内容时必须填写理由。','PASSPHRASE_MIN_12':'口令至少需要12个字符。','PASSPHRASE_MISMATCH':'两次口令不一致。','SPAN_OVERLAP':'补充内容与已有命中重叠，请先检查现有项。','FORMAT_UNSUPPORTED':'此文件格式尚不支持；未进行处理。','BATCH_LIMIT':'本批最多100个文件、合计250MB。','OUTPUT_ALREADY_EXISTS':'已有导出结果；请新建任务，避免覆盖。','TASK_EXPORT_FROZEN':'已导出的任务不能再修改复核；请新建任务处理新的副本。','GROUP_ASSIGNMENT_INVALID':'请为每份文件指定有效案件编号与材料性质。','FOLDER_OPEN_FAILED':'未能打开 Finder；请复制完整文件夹路径手动前往。','BUSY':'正在处理，请等待。'}
+                safe={'GROUP_REVIEW_REQUIRED':'请确认文件归属；待确认归属不能直接通过。','ALL_FILES_MUST_BE_REVIEWED':'请逐个检查文件并确认。','UNRESOLVED_STRUCTURAL_BLOCKERS':'文档存在不支持的内容，不能跳过检查。','LOCAL_REVIEW_INCOMPLETE':'请完成全部复核确认。','KEEP_REQUIRES_REASON':'保留敏感内容时必须填写理由。','PASSPHRASE_MIN_12':'口令至少需要12个字符。','PASSPHRASE_MISMATCH':'两次口令不一致。','SPAN_OVERLAP':'补充内容与已有命中重叠，请先检查现有项。','FORMAT_UNSUPPORTED':'此文件格式尚不支持；未进行处理。','BATCH_LIMIT':'本批最多100个文件、合计250MB。','OUTPUT_ALREADY_EXISTS':'已有导出结果；请新建任务，避免覆盖。','TASK_EXPORT_FROZEN':'已导出的任务不能再修改复核；请新建任务处理新的副本。','GROUP_ASSIGNMENT_INVALID':'请为每份文件指定有效案件编号与材料性质。','FOLDER_OPEN_FAILED':'未能打开文件管理器；请复制完整文件夹路径手动前往。','BUSY':'正在处理，请等待。'}
                 message=safe.get(str(e),'操作未完成，请检查输入、口令、文件状态或依赖。') if isinstance(e,ValueError) else '操作未完成，未返回任何原文错误信息。'
                 self.send({'error':message},400)
     server=ThreadingHTTPServer(('127.0.0.1',port),Handler);server.daemon_threads=True
@@ -208,7 +209,7 @@ def serve(port=0,open_browser=True,ready=None,home=None,singleton_file=None):
         if singleton_file:
             try:
                 file=Path(singleton_file)
-                if json.loads(file.read_text()).get('activate')==activate:file.unlink()
+                if json.loads(file.read_text('utf-8')).get('activate')==activate:file.unlink()
             except (OSError,ValueError):pass
         server.server_close();state['password']=None;state['job']=None;documents.clear();_ocr.cache_clear();local_model.cache_clear();temporary.cleanup()
 
@@ -217,7 +218,7 @@ def reactivate(path):
     """Local launcher-to-server control, distinct from the one-use browser bootstrap."""
     import http.client
     try:
-        record=json.loads(Path(path).read_text());port=record['port']
+        record=json.loads(Path(path).read_text('utf-8'));port=record['port']
         if type(port) is not int or not 0<port<65536:return None
         conn=http.client.HTTPConnection('127.0.0.1',port,timeout=2)
         try:
@@ -231,13 +232,12 @@ def reactivate(path):
     except (OSError,ValueError,TypeError,KeyError,http.client.HTTPException):return None
 
 def launch():
-    import fcntl
-    folder=Path.home()/'.local/share/legal-privacy-cloak';folder.mkdir(parents=True,exist_ok=True,mode=0o700)
+    folder=data_home();folder.mkdir(parents=True,exist_ok=True,mode=0o700)
     descriptor=folder/'desktop-session.json'
-    with (folder/'desktop-launch.lock').open('a') as handle:
-        os.chmod(handle.name,0o600);fcntl.flock(handle,fcntl.LOCK_EX)
+    with (folder/'desktop-launch.lock').open('a+b') as handle:
+        os.chmod(handle.name,0o600);lock_file(handle)
         url=reactivate(descriptor)
         if url:
-            fcntl.flock(handle,fcntl.LOCK_UN);webbrowser.open(url);return
-        def ready(url,server):fcntl.flock(handle,fcntl.LOCK_UN)
+            lock_file(handle,unlock=True);webbrowser.open(url);return
+        def ready(url,server):lock_file(handle,unlock=True)
         serve(ready=ready,singleton_file=descriptor)

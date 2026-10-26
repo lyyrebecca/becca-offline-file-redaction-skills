@@ -1,7 +1,8 @@
 """Ephemeral loopback-only review. Never route this page, its pixels or source to a cloud Agent."""
 from __future__ import annotations
 import base64, copy, html, io, secrets, threading, urllib.parse, webbrowser
-from http.server import HTTPServer,BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler
+from .localhttp import LocalHTTPServer as HTTPServer
 from pathlib import Path
 from PIL import Image
 from .vault import open_vault,seal,unb64
