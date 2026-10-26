@@ -71,3 +71,18 @@ def test_installer_and_native_launcher_from_unicode_path(tmp_path,monkeypatch):
     result=subprocess.run(launcher,env=env,capture_output=True,timeout=30)
     assert result.returncode==0,result.stderr.decode('utf-8','replace')
     assert json.loads(result.stdout.decode('utf-8'))['status']=='READY'
+
+def test_release_zip_uses_portable_paths_and_matches_manifest(tmp_path):
+    import hashlib,json,zipfile
+    from build_release import build
+    build(tmp_path)
+    manifest=json.loads((tmp_path/'release-manifest.json').read_text('utf-8'))
+    archive=next(tmp_path.glob('*.zip'))
+    assert hashlib.sha256(archive.read_bytes()).hexdigest()==manifest['archive_sha256']
+    with zipfile.ZipFile(archive) as z:
+        assert z.testzip() is None
+        assert all('\\' not in name and name.startswith('legal-privacy-cloak/') for name in z.namelist())
+        assert len(z.namelist())==len(manifest['files'])
+        for name,digest in manifest['files'].items():
+            assert hashlib.sha256(z.read('legal-privacy-cloak/'+name)).hexdigest()==digest
+        assert not any(name.endswith('.lpcv') or '/.git/' in name or '/private/' in name for name in z.namelist())

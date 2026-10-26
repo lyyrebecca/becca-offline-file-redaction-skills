@@ -1,8 +1,8 @@
 {
   "cold": {
     "file_count": 8,
-    "scan_seconds": 4.856,
-    "export_seconds": 4.889,
+    "scan_seconds": 3.151,
+    "export_seconds": 2.87,
     "units_persisted": 177,
     "status": "CHECKED",
     "verification": "CHECKED",
@@ -11,8 +11,8 @@
   },
   "warm": {
     "file_count": 8,
-    "scan_seconds": 1.668,
-    "export_seconds": 3.419,
+    "scan_seconds": 0.999,
+    "export_seconds": 2.009,
     "units_persisted": 177,
     "status": "CHECKED",
     "verification": "CHECKED",
@@ -20,7 +20,7 @@
     "derived_count": 10
   },
   "teaching": {
-    "seconds": 10.664,
+    "seconds": 6.775,
     "status": "CHECKED",
     "hidden_slides_removed": 1,
     "pdf_pages": 1,

@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-26",
+  "synthetic_only": true,
+  "run_url": "https://github.com/lyyrebecca/becca-offline-file-redaction-skills/actions/runs/40302698707",
+  "source_commit": "89e2162e70ee799cdaad9ff79e71f1fcce912eb0",
+  "status": "success",
+  "platforms": {
+    "Windows": {
+      "platform": "Windows-2025Server-10.0.26100-SP0",
+      "python": "3.12.10",
+      "tests": 106,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 119.22
+    },
+    "macOS": {
+      "platform": "macOS-26.6.2-arm64-arm-64bit",
+      "python": "3.12.10",
+      "tests": 106,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 83.436
+    }
+  }
+}

@@ -4,7 +4,7 @@
 
 本机安装后，在 Finder 双击技能根目录 **信息隐身衣.command**。2.0 会直接打开四步本地工作台；口令在本机页面输入，文件选择在页面完成。也可双击 `~/Applications/信息隐身衣.app`。旧终端向导保留为 `scripts/run.sh wizard`。没有真实原文或口令需要发到聊天里。
 
-本机已安装的固定入口为 `~/.codex/skills/legal-privacy-cloak/`；实际运行器默认使用 `~/.local/share/legal-privacy-cloak/venv/bin/python`。macOS、Python 3.11–3.12 为本版主要环境；本次验证为 macOS Python 3.12。
+本机已安装的固定入口为 `~/.codex/skills/legal-privacy-cloak/`；实际运行器默认使用 `~/.local/share/legal-privacy-cloak/venv/bin/python`。Windows 使用 `%LOCALAPPDATA%\legal-privacy-cloak\venv\Scripts\python.exe`，启动入口是开始菜单“贝卡文件脱敏”或根目录 `启动贝卡文件脱敏.cmd`。双系统推荐 Python 3.12；完整安装见 [安装说明](../docs/INSTALL.md)，已测范围见 [验收矩阵](../docs/VERIFICATION.md)。Windows 命令示例将 `scripts/run.sh` 换成 `scripts\run.cmd`。
 
 ## 依赖安装与离线边界
 

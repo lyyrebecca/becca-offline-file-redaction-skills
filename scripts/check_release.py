@@ -18,6 +18,12 @@ for n in ['README.md','README.en.md','LICENSE','THIRD_PARTY_NOTICES.md','docs/IN
 for n in ['scripts/run.sh','信息隐身衣.command']:
     if sys.platform!='win32' and not (root/n).stat().st_mode&0o111:errors.append('NOT_EXECUTABLE:'+n)
 brand=json.loads((root/'assets/brand.json').read_text('utf-8'));assert brand['email']=='1849883220@qq.com'
+evidence=json.loads((root/'docs/evidence/ui-acceptance.json').read_text('utf-8'))
+for name,record in evidence['screenshots'].items():
+    path=root/'docs/screenshots'/name
+    if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest()!=record['sha256']:errors.append('SCREENSHOT_EVIDENCE_MISMATCH:'+name)
+for name in ['scripts/run.cmd','启动贝卡文件脱敏.cmd']:
+    if not (root/name).is_file():errors.append('MISSING_WINDOWS_LAUNCHER:'+name)
 if brand['email'] not in (root/'assets/ui/index.html').read_text('utf-8'):errors.append('BRAND_EMAIL_MISSING')
 for p in selected(root):
     rel=str(p.relative_to(root))

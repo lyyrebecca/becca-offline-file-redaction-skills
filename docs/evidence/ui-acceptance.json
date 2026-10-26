@@ -31,8 +31,8 @@
       "bytes": 74386
     },
     "04-delivery.png": {
-      "sha256": "8cd3ccb4ece3a211489b265b5386f1c92a31b6ae9e0a44b5ad1c36a14109ffd4",
-      "bytes": 106860
+      "sha256": "a6a4b5494ef512731413fb0556010641fff08b5e4544f5f8515654a02b5a7192",
+      "bytes": 84868
     },
     "05-teaching-cleanup.png": {
       "sha256": "da0d8f7092d3168983b48fdf78b37efd57ca468f81b8abd5ddfc8f304b310d78",
@@ -47,5 +47,10 @@
       "bytes": 81875
     }
   },
-  "private_artifacts_published": false
+  "private_artifacts_published": false,
+  "post_platform_fix_ui_recheck": {
+    "reopened_synthetic_task": true,
+    "current_folder_api_and_finder_confirmed": true,
+    "screenshot": "04-delivery.png"
+  }
 }

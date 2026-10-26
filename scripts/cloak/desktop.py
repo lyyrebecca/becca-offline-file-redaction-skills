@@ -52,6 +52,7 @@ def serve(port=0,open_browser=True,ready=None,home=None,singleton_file=None):
     def public_state():
         result={k:state[k] for k in ('status','stage','done','total','workspace','result','error')}
         result.update(roles=ROLES,purposes=PURPOSES,recipients=RECIPIENTS,role_hints=ROLE_HINTS,categories=CATEGORIES,labels=LABELS,csrf=csrf)
+        result['delivery_path']=str(Path(state['workspace'])/'share') if state['workspace'] else None
         result['uploads']=[{'name':r['label'],'size':r['size']} for r in state['uploads']]
         if state['job']:
             j=state['job'];result['task']=w.stats(j);result['scenario']=j.get('scenario',{});result['groups_confirmed']=j.get('groups_confirmed',False)

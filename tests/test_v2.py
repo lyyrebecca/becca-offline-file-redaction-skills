@@ -123,6 +123,7 @@ def test_desktop_security_and_api(tmp_path,monkeypatch):
             patch.setattr('cloak.desktop.open_folder',lambda path:calls.append(str(path)))
             post('/open',{'kind':'share'}).read()
         assert calls==[str(Path(s['workspace'])/'share')]
+        assert s['delivery_path']==str(Path(s['workspace'])/'share')
         restored=json.load(post('/restore',{'fi':0}));assert Path(restored['output']).read_text()==PHONE
     finally:result['server'].shutdown();t.join(15)
 

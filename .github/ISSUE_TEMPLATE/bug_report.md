@@ -5,7 +5,7 @@ about: 描述固定错误码与合成复现步骤，不上传案件原件
 
 ## 版本与环境
 - 发布版本：
-- macOS / Python：
+- Windows或macOS版本 / Python：
 - doctor无原文状态：
 
 ## 如何复现（只用虚构内容）
