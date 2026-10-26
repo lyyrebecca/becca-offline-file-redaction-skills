@@ -239,7 +239,7 @@ def test_cli_no_tty_and_safe_error(tmp_path):
     import subprocess
     p=tmp_path/'s.txt';p.write_text(TEXT)
     cli=Path(__file__).resolve().parents[1]/'scripts/lpc.py'
-    r=subprocess.run([sys.executable,str(cli),'scan',str(p),'--workspace',str(tmp_path/'job')],capture_output=True,text=True)
+    r=subprocess.run([sys.executable,str(cli),'scan',str(p),'--workspace',str(tmp_path/'job')],stdin=subprocess.DEVNULL,capture_output=True,text=True,timeout=15)
     assert r.returncode==1 and 'LOCAL_TTY_REQUIRED' in r.stdout
     assert PHONE not in r.stdout+r.stderr and PERSON not in r.stdout+r.stderr
 

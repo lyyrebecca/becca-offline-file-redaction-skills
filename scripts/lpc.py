@@ -13,7 +13,7 @@ def emit(value):print(json.dumps(value,ensure_ascii=False,indent=2))
 
 def password(new=False):
     # No env var, argument or stdin password: keep secrets out of Agent transcripts and process lists.
-    if not sys.stdin.isatty():raise ValueError('LOCAL_TTY_REQUIRED')
+    if not sys.stdin.isatty() or not sys.stderr.isatty():raise ValueError('LOCAL_TTY_REQUIRED')
     p=getpass.getpass('本地保险库口令（至少12字符，不会显示）: ')
     if len(p)<12:raise ValueError('PASSPHRASE_MIN_12')
     if new and getpass.getpass('再次输入口令: ')!=p:raise ValueError('PASSPHRASE_MISMATCH')

@@ -7,7 +7,7 @@ from .vault import open_vault
 from .platforms import open_folder
 
 def wizard():
-    if not sys.stdin.isatty():raise ValueError('LOCAL_TTY_REQUIRED')
+    if not sys.stdin.isatty() or not sys.stderr.isatty():raise ValueError('LOCAL_TTY_REQUIRED')
     print('信息隐身衣｜本地处理，不自动上传\n请选择要处理的文件；原件不会覆盖。')
     paths=choose_files()
     if not paths:raise ValueError('NO_INPUT')
