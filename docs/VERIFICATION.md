@@ -8,7 +8,7 @@
 
 | 检查 | 实际结果 | 证据 |
 |---|---|---|
-| 全量回归 | **107 passed**，64.32秒 | [本地测试摘要](evidence/local-tests.txt) |
+| 全量回归 | **109 passed**，58.99秒 | [本地测试摘要](evidence/local-tests.txt) |
 | 乱序8格式端到端 | 冷暖两轮均CHECKED | [断网验收摘要](evidence/offline-acceptance.json) |
 | 原件恢复 | 两轮共16份，均按字节相同 | 同上 |
 | AI辅助文件 | 每轮8份Markdown＋2份索引，复查通过 | 同上 |
@@ -25,11 +25,11 @@
 
 | 阶段 | 冷轮 | 同进程暖轮 |
 |---|---:|---:|
-| 扫描 | 3.151秒 | 0.999秒 |
-| 导出＋Markdown＋内置检查 | 2.870秒 | 2.009秒 |
-| 两阶段合计 | **6.021秒** | **3.008秒** |
+| 扫描 | 2.889秒 | 0.962秒 |
+| 导出＋Markdown＋内置检查 | 2.871秒 | 1.949秒 |
+| 两阶段合计 | **5.760秒** | **2.911秒** |
 
-学生课件单独含可选像素PDF的流程约6.775秒。环境为Apple Silicon arm64、macOS26.6.2。数字只说明这组样本，不是对任意长文档/大扫描件的承诺。正文处理不请求外部LLM，日常与Agent的聊天开销另算。
+学生课件单独含可选像素PDF的流程约6.171秒。环境为Apple Silicon arm64、macOS26.6.2。数字只说明这组样本，不是对任意长文档/大扫描件的承诺。正文处理不请求外部LLM，日常与Agent的聊天开销另算。
 
 ## 真实操作截图与复核路径
 
@@ -60,7 +60,7 @@ sandbox-exec -p '(version 1)(allow default)(deny network*)(allow network* (local
 
 程序自己生成合成材料并模拟复核，**不能把它改为真实文件的自动批准器**。普通真实文件必须由使用者在本机完成复核。
 
-GitHub工作流执行模型/OCR依赖准备、发布结构与前端语法检查、107项合成回归。它不声称代替GUI截图、OS沙箱验收或可选LibreOffice渲染；这三类证据应分开阅读。
+GitHub工作流执行模型/OCR依赖准备、发布结构与前端语法检查、109项合成回归。它不声称代替GUI截图、OS沙箱验收或可选LibreOffice渲染；这三类证据应分开阅读。
 
 ## 历史验收与限制
 
@@ -80,10 +80,12 @@ GitHub工作流执行模型/OCR依赖准备、发布结构与前端语法检查�
 
 | 平台 | 实际测试范围 | 结果与边界 |
 |---|---|---|
-| 本机macOS 26.6.2 arm64 / Python 3.12 | 107项本地回归；8格式断网两轮；可选课件像素PDF；真实浏览器复核、恢复、文件夹打开 | 本地通过；截图均来自Mac真实运行 |
-| GitHub macOS runner / Python 3.12.10 | 原生完整回归、中文空格路径隔离安装与启动器 | 首轮双绿基线106项通过、0失败、0跳过；最终新增ZIP测试后以对应提交Actions为准 |
-| GitHub Windows Server 2025 x64 / Python 3.12.10 | 原生完整回归、OCR/PDF/Office/恢复/接口、Unicode IShellLinkW开始菜单快捷方式、cmd启动、系统文件锁 | 首轮双绿基线106项通过、0失败、0跳过；非Mac模拟。最终新增ZIP测试后以对应提交Actions为准 |
+| 本机macOS 26.6.2 arm64 / Python 3.12 | 109项本地回归；8格式断网两轮；可选课件像素PDF；真实浏览器复核、恢复、文件夹打开 | 本地通过；截图均来自Mac真实运行 |
+| GitHub macOS runner / Python 3.12.10 | 原生完整回归、中文空格路径隔离安装与启动器 | 首轮双绿基线106项通过、0失败、0跳过；后续增加ZIP及占位符稳定性测试后以对应提交Actions为准 |
+| GitHub Windows Server 2025 x64 / Python 3.12.10 | 原生完整回归、OCR/PDF/Office/恢复/接口、Unicode IShellLinkW开始菜单快捷方式、cmd启动、系统文件锁 | 首轮双绿基线106项通过、0失败、0跳过；非Mac模拟。后续增加ZIP及占位符稳定性测试后以对应提交Actions为准 |
 | Windows 11普通用户桌面 | 面向此场景提供安装与桌面入口 | 本轮没有实体Windows11桌面人工点击/输入法/Office渲染截图；不将Windows Server CI冒充此项 |
 | iOS/iPadOS、Linux桌面 | 本次不在交付范围 | 不宣称已适配 |
 
 固定证据：[双系统原生CI基线](evidence/native-ci-baseline.json)；[该次成功运行](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/actions/runs/40302698707)。持续状态：[工作流](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/actions/workflows/ci.yml)。Windows不是只改文案：依赖路径、Unicode快捷方式、运行入口、用户环境目录、文件夹打开和本地锁均有专门实现。
+
+最终复验还发现随机任务编号会影响spaCy对“脚注”等相邻词的判断，导致偶发的待复核（未发生错误放行）。引擎现仅在NER内部把占位符转为等长稳定类型标记，保留原文坐标、全部确定性检查及邻近标识识别；三个固定种子与单条/批量路径均有回归。此修复不会改写用户输出中的实际占位符。
