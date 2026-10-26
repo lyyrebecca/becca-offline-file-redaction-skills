@@ -62,7 +62,7 @@ jobs:
         run: python scripts/diagnose_ci.py --output "$RUNNER_TEMP/becca-diagnostics"
       - name: Run synthetic regression tests
         shell: bash
-        run: python -m pytest tests -q --junitxml="$RUNNER_TEMP/becca-junit.xml"
+        run: python -m pytest tests -vv --timeout=120 -o faulthandler_timeout=60 --junitxml="$RUNNER_TEMP/becca-junit.xml"
       - name: Upload synthetic test results only
         if: always()
         uses: actions/upload-artifact@v4
