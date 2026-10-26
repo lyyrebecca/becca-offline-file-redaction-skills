@@ -34,6 +34,8 @@ jobs:
           python scripts/check_release.py
           python scripts/lpc.py doctor
           node --check assets/ui/app.js
+      - name: Diagnose generated raster and OCR compatibility
+        run: python scripts/diagnose_ci.py --output "$RUNNER_TEMP/becca-diagnostics"
       - name: Run synthetic regression tests
         run: python -m pytest tests -q --junitxml="$RUNNER_TEMP/becca-junit.xml"
       - name: Upload test results only
@@ -41,5 +43,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: synthetic-test-results
-          path: ${{ runner.temp }}/becca-junit.xml
+          path: |
+            ${{ runner.temp }}/becca-junit.xml
+            ${{ runner.temp }}/becca-diagnostics/
           if-no-files-found: ignore
