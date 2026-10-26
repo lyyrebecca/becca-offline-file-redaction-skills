@@ -67,7 +67,8 @@ def test_text_office_roundtrip(tmp_path,autojob,suffix):
     ws,report=autojob(p)
     out=ws/'share'/('file-001'+suffix);d=Document(out.read_bytes(),suffix);text='\n'.join(u.text for u in d.units)
     assert PHONE not in text and PERSON not in text and SECRET not in text
-    assert '120000' in text and report['status']=='CHECKED',report
+    assert '120000' in text
+    assert report['status']=='CHECKED',report['verification']
     assert verify(ws,PW)['status']=='CHECKED'
     restored=tmp_path/('restored'+suffix);r=restore(ws,PW,restored,edited=out)
     assert r['status']=='RESTORED_EDITED'

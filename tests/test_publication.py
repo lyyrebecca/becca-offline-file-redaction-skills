@@ -86,3 +86,22 @@ def test_release_zip_uses_portable_paths_and_matches_manifest(tmp_path):
         for name,digest in manifest['files'].items():
             assert hashlib.sha256(z.read('legal-privacy-cloak/'+name)).hexdigest()==digest
         assert not any(name.endswith('.lpcv') or '/.git/' in name or '/private/' in name for name in z.namelist())
+
+def test_ner_placeholder_context_is_independent_of_random_task_id():
+    from cloak.core import Detector
+    detector=Detector()
+    for seed in ('cb11dd81bb9f','d94fc169f83c','aaaaaaaaaaaa'):
+        text=f'脚注 [P:{seed}:PERSON:001] [P:{seed}:PHONE:001]'
+        assert detector.find(text)==[]
+        detector.prime([text]);detector._results.clear()
+        assert detector.find(text)==[]
+
+def test_ner_placeholder_normalization_retains_offsets_and_nearby_detection():
+    from cloak.core import Detector,ner_text
+    from fixtures import DICT,PERSON,PHONE
+    text=f'[P:cb11dd81bb9f:PERSON:001] 姓名：{PERSON}，电话：{PHONE}'
+    normalized=ner_text(text)
+    assert len(normalized)==len(text) and 'cb11dd81bb9f' not in normalized
+    detector=Detector(dictionary=DICT);detector.prime([text]);hits=detector.find(text)
+    values=[text[h.start:h.end] for h in hits]
+    assert PERSON in values and PHONE in values

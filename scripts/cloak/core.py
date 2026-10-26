@@ -36,6 +36,12 @@ def local_model():
     model.max_length=2_000_000
     return model
 
+def ner_text(text):
+    norm=''.join(unicodedata.normalize('NFKC',c) if len(unicodedata.normalize('NFKC',c))==1 else c for c in text)
+    # Task IDs are machine syntax, not semantic context. Stable opaque masks preserve
+    # character offsets without letting random hexadecimal task IDs steer nearby NER.
+    return TOKEN.sub(lambda m:('<'+m.group().split(':')[2]+'>').ljust(len(m.group())),norm)
+
 class Detector:
     def __init__(self, policy='ai', dictionary=None, use_ner=True):
         if policy not in ('ai','external','public'): raise ValueError('POLICY_INVALID')
@@ -56,7 +62,7 @@ class Detector:
         # Batch only semantic NER; deterministic rules still inspect every unit.
         values=list(dict.fromkeys(t for t in texts if re.search(r'[\u4e00-\u9fff]',t) and t not in self._entities))
         if self.nlp:
-            norms=[''.join(unicodedata.normalize('NFKC',c) if len(unicodedata.normalize('NFKC',c))==1 else c for c in t) for t in values]
+            norms=[ner_text(t) for t in values]
             for text,doc in zip(values,self.nlp.pipe(norms,batch_size=64)):
                 self._entities[text]=[(e.start_char,e.end_char,e.label_,e.text) for e in doc.ents]
 
@@ -101,7 +107,7 @@ class Detector:
             for m in re.finditer(re.escape(item['text']),text):add(*m.span(),item['kind'],'case_dictionary',entity=item.get('entity',''))
         if self.nlp and re.search(r'[\u4e00-\u9fff]',norm):
             entities=self._entities.get(text)
-            if entities is None:entities=[(e.start_char,e.end_char,e.label_,e.text) for e in self.nlp(norm).ents]
+            if entities is None:entities=[(e.start_char,e.end_char,e.label_,e.text) for e in self.nlp(ner_text(norm)).ents]
             for start,end,label,value in entities:
                 k={'PERSON':'PERSON','PER':'PERSON','ORG':'ORG','GPE':'ADDRESS','LOC':'ADDRESS'}.get(label)
                 if not k:continue
