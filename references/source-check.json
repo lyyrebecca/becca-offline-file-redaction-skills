@@ -1,0 +1,261 @@
+[
+  {
+    "name": "legal-doc-redactor",
+    "url": "https://api.github.com/repos/moyupeng0422/legal-doc-redactor",
+    "final_url": "https://api.github.com/repos/moyupeng0422/legal-doc-redactor",
+    "status": 200,
+    "sha256": "554bc0c0a66d81271ca0b76070763d42233278e43ed51f266edfe46cc5239f95",
+    "bytes": 5976,
+    "checked_on": "2026-10-23",
+    "license": {
+      "key": "mit",
+      "name": "MIT License",
+      "spdx_id": "MIT",
+      "url": "https://api.github.com/licenses/mit",
+      "node_id": "MDc6TGljZW5zZTEz"
+    },
+    "default_branch": "main",
+    "updated_at": "2026-10-20T10:09:29Z"
+  },
+  {
+    "name": "redactor-readme",
+    "url": "https://raw.githubusercontent.com/moyupeng0422/legal-doc-redactor/main/README.md",
+    "final_url": "https://raw.githubusercontent.com/moyupeng0422/legal-doc-redactor/main/README.md",
+    "status": 200,
+    "sha256": "416975d7e4debe937e2305180bf05a471d5bd36c96473ced50f06fceb126823b",
+    "bytes": 10357,
+    "checked_on": "2026-10-23"
+  },
+  {
+    "name": "presidio",
+    "url": "https://api.github.com/repos/data-privacy-stack/presidio",
+    "final_url": "https://api.github.com/repos/data-privacy-stack/presidio",
+    "status": 200,
+    "sha256": "116824b3b390218ca2a50807881fb97fa96bd2b294a5d2cd3a1bf3cc26049456",
+    "bytes": 7324,
+    "checked_on": "2026-10-23",
+    "license": {
+      "key": "mit",
+      "name": "MIT License",
+      "spdx_id": "MIT",
+      "url": "https://api.github.com/licenses/mit",
+      "node_id": "MDc6TGljZW5zZTEz"
+    },
+    "default_branch": "main",
+    "updated_at": "2026-10-23T05:13:37Z"
+  },
+  {
+    "name": "phi",
+    "url": "https://raw.githubusercontent.com/microsoft/cat-agent-skills/main/submissions/phi-deidentifier/SKILL.md",
+    "final_url": "https://raw.githubusercontent.com/microsoft/cat-agent-skills/main/submissions/phi-deidentifier/SKILL.md",
+    "status": 200,
+    "sha256": "ebe91fe0d266380f49e1b29c8f6142c0ba64f988fbda431da154555e3aee705f",
+    "bytes": 9715,
+    "checked_on": "2026-10-23"
+  },
+  {
+    "name": "phi-license",
+    "url": "https://raw.githubusercontent.com/microsoft/cat-agent-skills/main/LICENSE",
+    "final_url": "https://raw.githubusercontent.com/microsoft/cat-agent-skills/main/LICENSE",
+    "status": 200,
+    "sha256": "c2cfccb812fe482101a8f04597dfc5a9991a6b2748266c47ac91b6a5aae15383",
+    "bytes": 1141,
+    "checked_on": "2026-10-23"
+  },
+  {
+    "name": "tab",
+    "url": "https://api.github.com/repos/NorskRegnesentral/text-anonymization-benchmark",
+    "final_url": "https://api.github.com/repos/NorskRegnesentral/text-anonymization-benchmark",
+    "status": 200,
+    "sha256": "b6c9e09635eab0385cf8cc92b9b035f428cc8f6c6f082abb116f57d792366024",
+    "bytes": 7653,
+    "checked_on": "2026-10-23",
+    "license": {
+      "key": "mit",
+      "name": "MIT License",
+      "spdx_id": "MIT",
+      "url": "https://api.github.com/licenses/mit",
+      "node_id": "MDc6TGljZW5zZTEz"
+    },
+    "default_branch": "master",
+    "updated_at": "2026-10-17T16:23:29Z"
+  },
+  {
+    "name": "tab-license",
+    "url": "https://raw.githubusercontent.com/NorskRegnesentral/text-anonymization-benchmark/master/LICENSE",
+    "error": "HTTPError"
+  },
+  {
+    "name": "pipl",
+    "url": "https://www.npc.gov.cn/npc/c2/c30834/202108/t20210820_313088.html",
+    "error": "URLError"
+  },
+  {
+    "name": "lawyer",
+    "url": "https://www.npc.gov.cn/npc/c2/c30834/201905/t20190521_278153.html",
+    "error": "URLError"
+  },
+  {
+    "name": "judgments",
+    "url": "https://www.court.gov.cn/zixun/xiangqing/25321.html",
+    "final_url": "https://www.court.gov.cn/zixun/xiangqing/25321.html",
+    "status": 200,
+    "sha256": "1947ac49c62b541c2f90b85b52654c0c015a84bdb85032cc58cb7a2dc23ee84f",
+    "bytes": 32007,
+    "checked_on": "2026-10-23"
+  },
+  {
+    "name": "pipl-gov",
+    "url": "https://www.gov.cn/xinwen/2021-08/20/content_5632486.htm",
+    "error": "HTTPError"
+  },
+  {
+    "name": "lawyer-gov",
+    "url": "https://www.gov.cn/flfg/2007-10/28/content_788495.htm",
+    "error": "HTTPError"
+  },
+  {
+    "name": "presidio-readme",
+    "url": "https://raw.githubusercontent.com/data-privacy-stack/presidio/main/README.md",
+    "error": "HTTPError"
+  },
+  {
+    "name": "tab-readme",
+    "url": "https://raw.githubusercontent.com/NorskRegnesentral/text-anonymization-benchmark/master/README.md",
+    "final_url": "https://raw.githubusercontent.com/NorskRegnesentral/text-anonymization-benchmark/master/README.md",
+    "status": 200,
+    "sha256": "81a4d41a06f5962c90df94361e453216b12d510e50120c98d0648e4f909c032d",
+    "bytes": 3512,
+    "checked_on": "2026-10-23"
+  },
+  {
+    "name": "redactor-license",
+    "url": "https://raw.githubusercontent.com/moyupeng0422/legal-doc-redactor/main/LICENSE",
+    "final_url": "https://raw.githubusercontent.com/moyupeng0422/legal-doc-redactor/main/LICENSE",
+    "status": 200,
+    "sha256": "a389f1b46aac3b47a73c99353543b264e3cc126ab176691e01db982d5f1339bd",
+    "bytes": 1067,
+    "checked_on": "2026-10-23"
+  },
+  {
+    "name": "presidio-license",
+    "url": "https://raw.githubusercontent.com/data-privacy-stack/presidio/main/LICENSE",
+    "final_url": "https://raw.githubusercontent.com/data-privacy-stack/presidio/main/LICENSE",
+    "status": 200,
+    "sha256": "f3e86ee59a49bcfb0d9a9547484d55224ea7b2d04f95b1947b4d18d17f6de535",
+    "bytes": 1084,
+    "checked_on": "2026-10-23"
+  },
+  {
+    "name": "spacy-model-meta",
+    "url": "https://raw.githubusercontent.com/explosion/spacy-models/master/meta/zh_core_web_sm-3.8.0.json",
+    "final_url": "https://raw.githubusercontent.com/explosion/spacy-models/master/meta/zh_core_web_sm-3.8.0.json",
+    "status": 200,
+    "sha256": "2b91c51352888d34a9c60d285274005fdaddcb35969d4515f27cbe7392581d6c",
+    "bytes": 10345,
+    "checked_on": "2026-10-23"
+  },
+  {
+    "name": "ner-license",
+    "url": "https://raw.githubusercontent.com/explosion/spacy-models/master/LICENSE",
+    "error": "HTTPError"
+  },
+  {
+    "name": "pipl-npc",
+    "url": "https://www.npc.gov.cn/c2/c30834/202108/t20210820_313088.html",
+    "error": "URLError"
+  },
+  {
+    "name": "lawyer-npc",
+    "url": "https://www.npc.gov.cn/c2/c30834/201905/t20190521_278153.html",
+    "error": "URLError"
+  },
+  {
+    "name": "pipl-cac",
+    "url": "https://www.cac.gov.cn/2021-08/20/c_1631050028355286.htm",
+    "error": "HTTPError"
+  },
+  {
+    "name": "pipl-spp",
+    "url": "https://www.spp.gov.cn/spp/fl/202108/t20210820_527105.shtml",
+    "error": "HTTPError"
+  },
+  {
+    "name": "lawyer-moj",
+    "url": "https://www.moj.gov.cn/pub/sfbgw/zwgkztzl/2021nianzhuanti/2021qtzt/qgflfww2021/flfg_2021/202108/t20210813_434722.html",
+    "error": "HTTPError"
+  },
+  {
+    "name": "presidio-readme-master",
+    "url": "https://raw.githubusercontent.com/data-privacy-stack/presidio/master/README.md",
+    "error": "HTTPError"
+  },
+  {
+    "name": "pipl-gov-zhengce",
+    "url": "https://www.gov.cn/zhengce/2021-08/20/content_5632486.htm",
+    "error": "HTTPError"
+  },
+  {
+    "name": "pipl-gov-wenjian",
+    "url": "https://www.gov.cn/zhengce/2021-08/20/content_5632486.htm?x=1",
+    "error": "HTTPError"
+  },
+  {
+    "name": "pipl-spp2",
+    "url": "https://www.spp.gov.cn/spp/fl/202108/t20210820_527104.shtml",
+    "error": "HTTPError"
+  },
+  {
+    "name": "lawyer-gov-zhengce",
+    "url": "https://www.gov.cn/zhengce/2007-10/28/content_788495.htm",
+    "error": "HTTPError"
+  },
+  {
+    "name": "lawyer-court",
+    "url": "https://www.court.gov.cn/zixun/xiangqing/313.html",
+    "status": 200,
+    "sha256": "f3761c57adb6194950160d99aa2b208f0cd0c3db75a05d188dfbd002ea1d33e7",
+    "checked_on": "2026-10-23"
+  },
+  {
+    "name": "pipl-verified",
+    "url": "https://shca.miit.gov.cn/zwgk/zcwj/flfg/art/2022/art_ed935fe2807e4787bfb8ca8e659e5524.html",
+    "error": "HTTPError"
+  },
+  {
+    "name": "lawyer-2026",
+    "url": "https://sfj.beijing.gov.cn/sfj/zwgk/2024zcwj/744120751/fl91/744123073/",
+    "error": "HTTPError"
+  },
+  {
+    "name": "pipl-web-verified",
+    "url": "https://shca.miit.gov.cn/zwgk/zcwj/flfg/art/2022/art_ed935fe2807e4787bfb8ca8e659e5524.html",
+    "method": "web_connector_open",
+    "status": "verified",
+    "checked_on": "2026-10-23",
+    "supported_articles": [
+      4,
+      6,
+      28,
+      51,
+      55,
+      73
+    ]
+  },
+  {
+    "name": "lawyer-web-verified",
+    "url": "https://sfj.beijing.gov.cn/sfj/zwgk/2024zcwj/744120751/fl91/744123073/",
+    "method": "web_connector_open",
+    "status": "verified",
+    "checked_on": "2026-10-23",
+    "confidentiality_article": 41
+  },
+  {
+    "name": "lawyer-amendment-web-verified",
+    "url": "https://legalinfo.moj.gov.cn/zhfxfzzx/fzzxyw/202609/t20260920_539939.html",
+    "method": "web_connector_open",
+    "status": "verified",
+    "checked_on": "2026-10-23",
+    "effective_on": "2026-09-01"
+  }
+]

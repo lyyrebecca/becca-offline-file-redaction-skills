@@ -1,0 +1,51 @@
+{
+  "version": "2.0.1",
+  "date": "2026-10-26",
+  "synthetic_only": true,
+  "live_ui": true,
+  "role_purpose_selection": true,
+  "local_path_import_file_count": 3,
+  "group_assignment_edited": true,
+  "reviewed_files": 3,
+  "font_false_positives_explicitly_kept": 2,
+  "manual_pixel_rectangles": 1,
+  "manual_masked_ocr_line_omitted_from_markdown": true,
+  "export": "CHECKED",
+  "verify": "CHECKED",
+  "student_hidden_slides_removed": 1,
+  "original_docx_restore_byte_identical": true,
+  "folder_link": "actual UI click opened matching Finder share path",
+  "copy_path": "success state observed",
+  "screenshots_unmodified": true,
+  "screenshots": {
+    "01-workbench.png": {
+      "sha256": "943ce08a4ebf6e5f8f0bc275af876c4052602ce889854cf3febf203fbc2bbbd9",
+      "bytes": 93651
+    },
+    "02-classification.png": {
+      "sha256": "5954df63f63bb6a60f2d058bbf1c2611f1d266dcf595bb44dc9004bf4744e6ad",
+      "bytes": 85598
+    },
+    "03-image-review.png": {
+      "sha256": "a8116bbf3b858d93b8d1953e28a42c4bbfa802654926c0d9f41380d9ca15bac7",
+      "bytes": 74386
+    },
+    "04-delivery.png": {
+      "sha256": "8cd3ccb4ece3a211489b265b5386f1c92a31b6ae9e0a44b5ad1c36a14109ffd4",
+      "bytes": 106860
+    },
+    "05-teaching-cleanup.png": {
+      "sha256": "da0d8f7092d3168983b48fdf78b37efd57ca468f81b8abd5ddfc8f304b310d78",
+      "bytes": 86871
+    },
+    "06-restore.png": {
+      "sha256": "b2f022d25e9a2be9ed7f52b91c392d154662311580e1a493e4b442eff54aed0a",
+      "bytes": 115503
+    },
+    "07-about.png": {
+      "sha256": "0ea16feaf8704f560b47eaa58bdf5c3e4367c13b6c083785d61d30a13f610c2f",
+      "bytes": 81875
+    }
+  },
+  "private_artifacts_published": false
+}

@@ -1,0 +1,7 @@
+interface:
+  display_name: "终极·贝卡的文件脱敏离线部署软件 skills"
+  short_description: "本地批量脱敏、案件归档、教学课件清理、AI读取版与加密恢复"
+  icon_small: "../assets/icon-64.png"
+  icon_large: "../assets/icon-256.png"
+  brand_color: "#A577FF"
+  default_prompt: "使用 $legal-privacy-cloak，按我的身份、接收对象和用途，打开本地工作台完成批量脱敏、案件整理及必要的AI读取版；不要读取或上传真实原文，不要索取真实口令。"

@@ -1,0 +1,45 @@
+name: Local redaction regression
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  macos-python312:
+    name: macOS · Python 3.12 · synthetic tests
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-test.txt
+      - name: Prepare local OCR and PDF dependencies
+        run: |
+          brew install tesseract poppler
+          mkdir -p "$RUNNER_TEMP/becca-tessdata"
+          cp "$(brew --prefix tesseract)/share/tessdata/eng.traineddata" "$RUNNER_TEMP/becca-tessdata/"
+          curl --fail --location --retry 3 https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/chi_sim.traineddata -o "$RUNNER_TEMP/becca-tessdata/chi_sim.traineddata"
+          echo "TESSDATA_PREFIX=$RUNNER_TEMP/becca-tessdata" >> "$GITHUB_ENV"
+      - name: Install runtime and synthetic test dependencies
+        run: python -m pip install -r requirements.txt -r requirements-test.txt
+      - name: Validate release structure and privacy exclusions
+        run: |
+          python scripts/check_release.py
+          python scripts/lpc.py doctor
+          node --check assets/ui/app.js
+      - name: Run synthetic regression tests
+        run: python -m pytest tests -q --junitxml="$RUNNER_TEMP/becca-junit.xml"
+      - name: Upload test results only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-test-results
+          path: ${{ runner.temp }}/becca-junit.xml
+          if-no-files-found: ignore

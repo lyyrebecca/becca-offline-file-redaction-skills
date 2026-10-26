@@ -1,0 +1,8 @@
+Version: 2.0.1
+Date: 2026-10-26
+Dataset: generated synthetic fixtures only
+Command: python -m pytest tests -q
+
+........................................................................ [ 75%]
+........................                                                 [100%]
+96 passed in 112.04s (0:01:52)

@@ -1,0 +1,36 @@
+{
+  "cold": {
+    "file_count": 8,
+    "scan_seconds": 4.856,
+    "export_seconds": 4.889,
+    "units_persisted": 177,
+    "status": "CHECKED",
+    "verification": "CHECKED",
+    "restored_byte_identical": 8,
+    "derived_count": 10
+  },
+  "warm": {
+    "file_count": 8,
+    "scan_seconds": 1.668,
+    "export_seconds": 3.419,
+    "units_persisted": 177,
+    "status": "CHECKED",
+    "verification": "CHECKED",
+    "restored_byte_identical": 8,
+    "derived_count": 10
+  },
+  "teaching": {
+    "seconds": 10.664,
+    "status": "CHECKED",
+    "hidden_slides_removed": 1,
+    "pdf_pages": 1,
+    "pdf_text_layer": false
+  },
+  "machine": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "processor": "arm64",
+    "network": "OS sandbox deny network*; allow Unix IPC only; IP connect denied verified",
+    "external_llm_calls": 0,
+    "test_data": "synthetic only"
+  }
+}
