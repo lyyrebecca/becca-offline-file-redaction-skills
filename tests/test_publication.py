@@ -44,3 +44,30 @@ def test_native_process_lock(tmp_path):
     from cloak.platforms import lock_file
     with (tmp_path/'lock').open('a+b') as f:
         lock_file(f);lock_file(f,unlock=True)
+
+def test_installer_and_native_launcher_from_unicode_path(tmp_path,monkeypatch):
+    """Real subprocess, fresh isolated install; reuse already installed dependency packages."""
+    import json,os,subprocess,sys,venv
+    from pathlib import Path
+    root=Path(__file__).resolve().parents[1]
+    env=os.environ.copy();env['PYTHONUTF8']='1'
+    data=tmp_path/'本地运行环境 with spaces';env['LOCALAPPDATA']=str(data);env['XDG_DATA_HOME']=str(data)
+    runtime=data/'legal-privacy-cloak/venv';venv.EnvBuilder(system_site_packages=True).create(runtime)
+    python=runtime/('Scripts/python.exe' if sys.platform=='win32' else 'bin/python')
+    import site,sysconfig
+    packages=Path(sysconfig.get_path('purelib',vars={'base':str(runtime),'platbase':str(runtime)}));packages.mkdir(parents=True,exist_ok=True)
+    (packages/'synthetic-test-dependencies.pth').write_text('\n'.join(site.getsitepackages())+'\n',encoding='utf-8')
+    target=tmp_path/'中文安装目录 with spaces'/'legal-privacy-cloak'
+    command=[sys.executable,str(root/'scripts/install.py'),'--target',str(target)]
+    if sys.platform=='win32':
+        env['APPDATA']=str(tmp_path/'StartMenu测试');command.append('--app')
+    result=subprocess.run(command,env=env,capture_output=True,timeout=90)
+    assert result.returncode==0,result.stderr.decode('utf-8','replace')
+    assert (target/'SKILL.md').is_file() and not (target/'.git').exists()
+    if sys.platform=='win32':
+        assert (Path(env['APPDATA'])/'Microsoft/Windows/Start Menu/Programs/贝卡文件脱敏.lnk').is_file()
+        launcher=['cmd.exe','/d','/c',str(target/'scripts/run.cmd'),'doctor']
+    else:launcher=['sh',str(target/'scripts/run.sh'),'doctor']
+    result=subprocess.run(launcher,env=env,capture_output=True,timeout=30)
+    assert result.returncode==0,result.stderr.decode('utf-8','replace')
+    assert json.loads(result.stdout.decode('utf-8'))['status']=='READY'

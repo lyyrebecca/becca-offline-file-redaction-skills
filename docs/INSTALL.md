@@ -1,10 +1,10 @@
-# 从下载到启动：Mac安装说明
+# 从下载到启动：Windows / macOS安装说明
 
 ## 你要先知道的四件事
 
 1. 程序本体是本地的，不需要脱敏API Key或付费模型账户。使用Agent时，Agent产品本身的要求另算。
 2. 首次安装要联网下载Python依赖和中文模型；日常脱敏可以离线。
-3. 正式验收桌面环境为macOS＋Python3.12。不是Windows安装器，不要求购买Office，额外PPT→PDF才需本机LibreOffice。
+3. 目标为 Windows 11 x64 / macOS＋Python3.12，具体已测范围见[验收记录](VERIFICATION.md)。不要求购买 Office；额外 PPT→PDF 才需本机 LibreOffice。不是 iPhone/iPad 程序，不提供内置全部依赖的免安装 exe。
 4. 不要把真实原文或口令上传聊天来“帮助安装”。软件复核页面仅在本机使用。
 
 ## 方法A：下载ZIP
@@ -28,7 +28,63 @@ cd becca-offline-file-redaction-skills
 
 两种方法接下来相同。终端必须位于包含`SKILL.md`的项目文件夹；不要直接运行从其他电脑拷来的.app。
 
-## 首次安装依赖与桌面入口
+## Windows
+
+### 1. 准备一次性依赖
+
+安装 [Python 3.12](https://www.python.org/downloads/)（Windows installer，勾选 Python Launcher 和 Add Python to PATH）。打开独立 PowerShell，执行 `py -3.12 --version`，应显示 Python 3.12。不要在 AI 管理的终端中输入案件口令。
+
+如果电脑已经安装 [Chocolatey](https://chocolatey.org/install)，可在**管理员 PowerShell**安装系统工具：
+
+```powershell
+choco install tesseract poppler --no-progress -y
+```
+
+若没有 Chocolatey，可按其官方说明安装，或自行使用 [Tesseract Windows分发说明](https://github.com/UB-Mannheim/tesseract/wiki) 和 [Poppler Windows构建](https://github.com/oschwartz10612/poppler-windows/releases) 安装。Poppler的 `Library\bin`、Tesseract的安装目录应加入用户 PATH。Chocolatey 默认目录会被本程序发现；自定义位置需自行加入 PATH。安装完重新打开 PowerShell。
+
+Tesseract 必须同时有 `eng`、`chi_sim`。运行以下命令确认：
+
+```powershell
+& 'C:\Program Files\Tesseract-OCR\tesseract.exe' --list-langs
+```
+
+若缺少 `chi_sim`，可从 [Tesseract官方语言数据](https://github.com/tesseract-ocr/tessdata_fast) 下载 `chi_sim.traineddata`，与已有的 `eng.traineddata` 放到用户目录 `\AppData\Local\legal-privacy-cloak\tessdata`，然后设置用户 `TESSDATA_PREFIX`。以下操作仅下载公开模型，**不上传材料**：
+
+```powershell
+$data = Join-Path $env:LOCALAPPDATA 'legal-privacy-cloak\tessdata'
+New-Item -ItemType Directory -Force $data | Out-Null
+Copy-Item 'C:\Program Files\Tesseract-OCR\tessdata\eng.traineddata' $data
+Invoke-WebRequest 'https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/chi_sim.traineddata' -OutFile "$data\chi_sim.traineddata"
+[Environment]::SetEnvironmentVariable('TESSDATA_PREFIX', $data, 'User')
+$env:TESSDATA_PREFIX = $data
+```
+
+若系统工具安装在自定义位置，请相应修改上述路径。中文模型丢失时程序应报依赖不齐，不能继续当作“已检查”。
+
+### 2. 安装 Skill 和开始菜单入口
+
+解压ZIP后，在 `legal-privacy-cloak` 文件夹的空白处右键“在终端中打开”（或 PowerShell 中 `cd` 到该文件夹），运行：
+
+```powershell
+py -3.12 scripts/install.py --with-deps --app
+& "$HOME\.codex\skills\legal-privacy-cloak\scripts\run.cmd" doctor
+```
+
+看到 `READY` 才表示依赖检查通过。安装器会创建：
+
+- `%LOCALAPPDATA%\legal-privacy-cloak\venv`：本机 Python 运行环境；
+- `%USERPROFILE%\.codex\skills\legal-privacy-cloak`：Skill；
+- 开始菜单 **贝卡文件脱敏**：带用户指定图标的快捷方式。
+
+随后从开始菜单打开，或双击安装目录中的 **启动贝卡文件脱敏.cmd**。弹出的默认浏览器仅连接本机 `127.0.0.1`；不用登录云端账户。Windows启动器保留控制台供报错；请用网页右上“退出”结束服务。不要把 `.command` 或 `.app` 当作 Windows 启动器。
+
+### 3. 可选PPT转PDF和更新
+
+需要额外像素PDF时安装 [LibreOffice](https://www.libreoffice.org/download/download-libreoffice/)；标准 `Program Files\LibreOffice\program\soffice.exe` 或 PATH 位置会被发现。不勾选该选项则不需要它。
+
+更新前退出服务，备份旧 Skill 目录及开始菜单旧快捷方式，再从新包安装。安装器拒绝静默覆盖。不删除 Documents 里的任务、保险库或恢复件。Windows沿用用户配置目录的 ACL；POSIX `0600` 不等于 Windows ACL，勿把私有目录放进公共共享文件夹。
+
+## macOS：首次安装依赖与桌面入口
 
 先按照[Homebrew官方说明](https://brew.sh/)安装Homebrew，然后在自己打开的终端执行：
 

@@ -10,7 +10,7 @@
 [![CI](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/actions/workflows/ci.yml/badge.svg)](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/lyyrebecca/becca-offline-file-redaction-skills)](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/releases/latest)
 ![Local processing](https://img.shields.io/badge/processing-local%20%26%20offline-7044c4)
-![Desktop](https://img.shields.io/badge/desktop-macOS-150a35)
+![Desktop](https://img.shields.io/badge/desktop-Windows%20%2B%20macOS-150a35)
 
 [下载正式版本](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/releases/latest) · [从零开始](开始使用.md) · [安装步骤](docs/INSTALL.md) · [真实验收证据](docs/VERIFICATION.md) · [常见问题](docs/FAQ.md) · [English](README.en.md)
 </div>
@@ -28,7 +28,7 @@
 
 不需要每次让AI重新“搓一个软件”。**安装依赖后，可以不打开AI、不填写模型API Key，独立使用本地工作台。** 首次准备Python、OCR与模型需要联网；“离线”指准备好依赖后的日常处理，本发行包不是内置所有依赖的空气隔离安装镜像。
 
-> 当前正式桌面环境：**macOS、Python 3.12**。Windows/Linux未做本次桌面端到端验收，不提供可直接运行的`.exe`，不把Mac启动器当成跨平台安装包。
+> 桌面适配目标：**Windows 11 x64 与 macOS，Python 3.12**。提供分别适配的启动入口与安装说明；回归在真正的 Windows / macOS runner 执行，详见[平台验收矩阵](docs/VERIFICATION.md)。这是源码 Skill＋本地引擎，不是内置全部依赖的免安装 `.exe`；不支持 iPhone/iPad。
 
 ## 谁适合使用？
 
@@ -49,7 +49,7 @@
 1. 选择身份、脱敏目的、接收对象，以及单案还是混合材料。
 2. 选择/拖入文件；也能粘贴本机文件夹路径批量导入。在本机设保险库口令。
 3. 确认建议的案件编号和材料类别。逐份查看文字与图片，补充漏检、框选签名/人脸/二维码，同名不同人可单独编号。
-4. 导出后查看实际状态，点醒目的 **「一键打开交付文件夹」**，直接在Finder找到结果；也能复制完整文件夹路径。
+4. 导出后查看实际状态，点醒目的 **「一键打开交付文件夹」**，直接在系统文件管理器找到结果；也能复制完整文件夹路径。
 
 不是“看见几个黑块就算完成”：缺依赖、打不开的内容、不支持的部件、未复核文件或残留问题，都不能当作检查通过。
 
@@ -141,9 +141,13 @@ Office内嵌图片也会处理。宏、旧式`.doc/.xls/.ppt`、部分嵌入对�
 └── restored/                    内部恢复件，不随结果分享
 ```
 
-**只考虑发送share里本次需要的文件，不要直接打包整个任务目录。** 文件夹链接通过经过校验的本机服务打开Finder，不依赖浏览器对`file://`的兼容。退出服务后可重新打开应用或复制路径手工前往。
+**只考虑发送share里本次需要的文件，不要直接打包整个任务目录。** 文件夹链接通过经过校验的本机服务打开系统文件管理器（Windows资源管理器 / macOS Finder），不依赖浏览器对`file://`的兼容。退出服务后可重新打开应用或复制路径手工前往。
 
-## 安装：当前电脑是Mac时
+## 安装：Windows 与 macOS
+
+**Windows**：先安装 Python 3.12、Tesseract 与 Poppler，再从项目文件夹运行 `py -3.12 scripts/install.py --with-deps --app`。安装后从开始菜单打开“贝卡文件脱敏”，或双击 `启动贝卡文件脱敏.cmd`。中文 OCR 语言包及详细分步操作见[Windows安装教程](docs/INSTALL.md#windows)。
+
+### macOS
 
 完整教程与升级/卸载见[安装文档](docs/INSTALL.md)。普通用户可以从[Release](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/releases/latest)下载Skill ZIP并解压；开发者也可：
 
@@ -178,7 +182,7 @@ $legal-privacy-cloak
 
 - 发布前本地重新运行完整回归；[测试日志和证据说明](docs/VERIFICATION.md)区分历史2.0.0验收与本次2.0.1复验。
 - 既有验收：8种格式乱序扫描/导出、Markdown、学生PPT清理、像素PDF、原件字节恢复、Office编辑恢复、错误口令/篡改、残留和接口安全。
-- 已有小型8格式样本的扫描＋导出：冷轮约9.620秒、同进程暖轮约5.116秒；**不包含人工复核，不是所有真实文件的性能承诺**。
+- 已有小型8格式样本的扫描＋导出：冷轮约9.745秒、同进程暖轮约5.087秒；**不包含人工复核，不是所有真实文件的性能承诺**。
 - 不调用外部LLM处理正文，不需要模型API Key。与Agent聊天的说明仍可能消耗该产品自己的额度；不能承诺全流程所有服务都零token。
 - OS沙箱验证IP网络被阻断；可选LibreOffice仅需本机Unix IPC。这是验收方法，不是已经替每台电脑永久设置了防火墙。
 
@@ -195,7 +199,7 @@ $legal-privacy-cloak
 
 ## English summary / search terms
 
-**Local, offline PII redaction and document de-identification Skill for Chinese legal documents.** Supports DOCX, XLSX, PPTX, rasterized PDF, scanned documents, PNG/JPEG and UTF-8 text/Markdown. Includes local Chinese NER, Tesseract OCR, manual review, matter grouping, teaching-slide cleanup, AI-readable Markdown and encrypted restoration. Desktop workflow is verified on macOS; no external LLM API is used for document processing. Reversible pseudonymization is not legal anonymization.
+**Local, offline PII redaction and document de-identification Skill for Chinese legal documents.** Supports DOCX, XLSX, PPTX, rasterized PDF, scanned documents, PNG/JPEG and UTF-8 text/Markdown. Includes local Chinese NER, Tesseract OCR, manual review, matter grouping, teaching-slide cleanup, AI-readable Markdown and encrypted restoration. Includes Windows and macOS desktop integration; actual platform test scope is documented in the verification matrix; no external LLM API is used for document processing. Reversible pseudonymization is not legal anonymization.
 
 相关检索：文件脱敏软件、法律文书脱敏、律师AI隐私、合同脱敏、证据打码、Word脱敏、Excel脱敏、PPT图片打码、课件脱敏、扫描件OCR脱敏、PDF隐私遮挡、个人信息保护、离线部署、Codex Skill、Agent Skills。
 

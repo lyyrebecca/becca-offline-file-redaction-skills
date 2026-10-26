@@ -4,7 +4,7 @@ Chinese product name: **终极·贝卡的文件脱敏离线部署软件 skills**
 
 A local-first document de-identification workflow for legal materials: deterministic rules, Chinese spaCy NER, Tesseract OCR, local human review, conservative matter grouping, document adapters, teaching-slide cleanup, AI-readable Markdown and encrypted restoration.
 
-**Verified desktop environment: macOS and Python 3.12.** This is a Skill plus a fixed local engine and lightweight macOS launcher, not a self-contained cross-platform installer. Runtime dependencies and models must be prepared first; initial setup uses the network. Routine document processing does not call an external LLM API.
+**Desktop targets: Windows 11 x64 and macOS with Python 3.12.** Native Windows/macOS CI exercises the core workflow and isolated installation/launchers. macOS additionally has manual browser/Finder acceptance screenshots. This is a Skill plus a fixed local engine and OS-specific launchers, not a self-contained installer. iOS/iPadOS is outside scope. See the verification matrix for exact tested coverage. Runtime dependencies and models must be prepared first; initial setup uses the network. Routine document processing does not call an external LLM API.
 
 ## Formats and workflow
 
@@ -17,7 +17,17 @@ A local-first document de-identification workflow for legal materials: determini
 
 Choose a role and purpose → import → confirm matter assignments → review text and images locally → export and verify → open the delivery folder. Unknown or unsupported content is not reported as passed.
 
-## Setup
+## Windows setup
+
+Install Python 3.12, Tesseract (English and Simplified Chinese data) and Poppler. From the project folder run:
+
+```powershell
+py -3.12 scripts/install.py --with-deps --app
+```
+
+Open **贝卡文件脱敏** from the Start Menu, or double-click `启动贝卡文件脱敏.cmd`. The runtime resides in `%LOCALAPPDATA%\legal-privacy-cloak\venv`; the Skill remains under `~/.codex/skills/legal-privacy-cloak`. See the [detailed guide](docs/INSTALL.md#windows).
+
+## macOS setup
 
 ```bash
 git clone https://github.com/lyyrebecca/becca-offline-file-redaction-skills.git
