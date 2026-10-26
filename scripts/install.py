@@ -33,8 +33,7 @@ def main():
         shortcut=Path(os.environ['APPDATA'])/'Microsoft/Windows/Start Menu/Programs/贝卡文件脱敏.lnk'
         shortcut.parent.mkdir(parents=True,exist_ok=True)
         if shortcut.exists():raise SystemExit('Shortcut exists; back it up explicitly first.')
-        literal=lambda path:"'"+str(path).replace("'","''")+"'"
-        command='$s=(New-Object -ComObject WScript.Shell).CreateShortcut('+literal(shortcut)+');$s.TargetPath='+literal(python)+';$s.Arguments='+literal('"'+str(target/'scripts/lpc.py')+'" desktop')+';$s.WorkingDirectory='+literal(target)+';$s.IconLocation='+literal(icon)+';$s.Save()'
-        subprocess.run(['powershell.exe','-NoProfile','-NonInteractive','-Command',command],check=True)
+        from cloak.windows_shortcut import create_shortcut
+        create_shortcut(shortcut,python,'"'+str(target/'scripts/lpc.py')+'" desktop',target,icon)
     print('Installed legal-privacy-cloak. No other Agent configuration was changed.')
 if __name__=='__main__':main()
