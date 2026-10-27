@@ -1,215 +1,213 @@
 <div align="center">
 <img src="assets/icon-256.png" width="104" alt="贝卡文件脱敏图标">
 
-# 终极·贝卡的文件脱敏离线部署软件 skills
+# 信息隐身衣 · 贝卡文件脱敏
 
-**信息隐身衣 / Becca Offline File Redaction Skills**
+**让法律材料有序流转，让真实身份留在本机。**
 
-法律文件本地脱敏 · 隐私保护 · 证据材料打码 · 案件分类整理 · PPT课件图片脱敏 · AI可读Markdown · 加密恢复
+本地脱敏与人工复核 · 混合材料归档 · 课件清理 · AI 读取版 · 加密恢复
 
 [![CI](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/actions/workflows/ci.yml/badge.svg)](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/lyyrebecca/becca-offline-file-redaction-skills)](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/releases/latest)
 ![Local processing](https://img.shields.io/badge/processing-local%20%26%20offline-7044c4)
 ![Desktop](https://img.shields.io/badge/desktop-Windows%20%2B%20macOS-150a35)
 
-[下载正式版本](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/releases/latest) · [从零开始](开始使用.md) · [安装步骤](docs/INSTALL.md) · [真实验收证据](docs/VERIFICATION.md) · [常见问题](docs/FAQ.md) · [English](README.en.md)
+[下载版本](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/releases/latest) · [开始使用](开始使用.md) · [安装教程](docs/INSTALL.md) · [验收证据](docs/VERIFICATION.md) · [常见问题](docs/FAQ.md) · [English](README.en.md)
 </div>
 
-## 这是什么？先说人话
+## 项目解决什么问题？
 
-给你一套**能实际运行的本地文件隐私处理工具**：把一批零散的合同、诉状、聊天截图、扫描件、课件放进来，在自己电脑上识别、复核、打码，按案件和材料类别输出，必要时再把脱敏内容整理成方便AI读取的Markdown。
+合同、诉状、证据截图和授课材料中，常同时包含有用的法律事实与不宜披露的身份信息。交给 AI、发送他人或用于教学前，逐份手动打码容易遗漏；只遮住可见文字，也可能留下批注、隐藏页或图片中的信息。
 
-它同时包含：
+**信息隐身衣是一套在本机识别、复核、脱敏、归档和恢复文件的工具。** 它让使用者先确认哪些信息需要隐藏，再导出用途明确的工作副本；原件与替换映射保存在独立加密保险库中，不自动上传或外发。
 
-- **Skill入口**：让Agent按场景正确引导，而不是先把你的原文读到云端。
-- **固定本地引擎**：规则、中文实体识别、OCR、格式处理、残留检查、加密恢复。
-- **电脑端工作台**：四步操作、案件归属编辑、逐文件复核、图片拖框、结果文件夹直达。
-- **可复现测试**：合成测试样本、回归测试、离线验收方法、实际操作截图。
+项目作为**人工智能法课程实践**，尝试把“在向 AI 提供材料前减少不必要的信息披露”落实为可操作的流程：原文先在本地处理，人确认后再决定是否分享。**可恢复的去标识化不等于法律意义上的匿名化**，工具也不替代披露权限、使用目的和法律责任的判断。
 
-不需要每次让AI重新“搓一个软件”。**安装依赖后，可以不打开AI、不填写模型API Key，独立使用本地工作台。** 首次准备Python、OCR与模型需要联网；“离线”指准备好依赖后的日常处理，本发行包不是内置所有依赖的空气隔离安装镜像。
+正式发布名为「终极·贝卡的文件脱敏离线部署软件 skills」，技术调用名为 `$legal-privacy-cloak`。
 
-> 桌面适配目标：**Windows 11 x64 与 macOS，Python 3.12**。提供分别适配的启动入口与安装说明；回归在真正的 Windows / macOS runner 执行，详见[平台验收矩阵](docs/VERIFICATION.md)。这是源码 Skill＋本地引擎，不是内置全部依赖的免安装 `.exe`；不支持 iPhone/iPad。
+## 不只是一段提示词
 
-## 谁适合使用？
+| 组成 | 作用 |
+|---|---|
+| **Skill 使用规范** | 引导 Agent 打开本地工具，不先读取真实原文，不索取口令，不把附件内的指令当作操作授权 |
+| **固定本地处理引擎** | 执行规则识别、中文实体识别、OCR、格式处理、残留检查与加密恢复，不为每次任务重新生成程序 |
+| **可视化工作台** | 选择场景、批量导入、修改案件归属、逐文件复核、拖框打码和打开结果文件夹 |
+| **测试与验收材料** | 提供合成样本回归、断网处理记录、真实工作台截图和平台测试范围 |
 
-| 你是谁 | 典型材料 | 适合的目的 |
+**依赖安装完成后，可以不打开 AI、不填写模型 API Key，独立使用工作台。** 首次准备 Python、OCR 和中文模型通常需要联网；本项目是源码 Skill＋本地引擎，不是内置全部依赖的免安装程序。
+
+## 核心功能
+
+| 功能 | 具体能做什么 |
+|---|---|
+| **识别敏感信息** | 组合规则、校验码、案件词典与本地中文实体识别，查找姓名、组织、地址、联系方式、证件与账户号码、案号、合同编号和指定机密等候选；按用途处理日期、金额及部分间接身份线索 |
+| **文字与图片脱敏** | 文本替换为一致占位符；OCR 定位扫描件、截图和 Office 内嵌图片中的文字，并以实心像素遮挡；可手动补充漏检、框选签名、人脸或二维码 |
+| **按案件整理材料** | 根据明确案号、合同编号提出归类建议；使用者确认后按案件和材料类别输出，使用中性文件名；弱线索、多个标识进入待确认区，不仅凭同名并案 |
+| **保持指代一致** | 同一确认案件内，同字面实体使用一致占位符；同名不同人可添加区分编号，便于后续阅读和分析 |
+| **清理教学课件** | 检查 PPT 正文、截图和嵌入图片；学生分发模式还清理讲者备注、批注、隐藏页与相关孤立部件 |
+| **生成 AI 读取版** | 从已复核的脱敏内容生成 Markdown、材料与来源索引、日期出现位置索引；保留位置和 OCR 提示，不编造案情摘要；手工遮挡覆盖的 OCR 行不进入读取版 |
+| **检查导出结果** | 导出后执行残留检查并显示状态；缺依赖、不支持部件、未复核文件或检查异常不会被当作完成 |
+| **加密保存与恢复** | 使用 AES-256-GCM 与 scrypt 保存原件和映射；可取回原件，也可对符合条件的 Office／文本编辑副本恢复完好占位符 |
+
+自动识别提供的是**待核对的候选项**，不是完整的法律语义判断。中文模型并非法律专用关系推理模型；英文姓名、所有商业秘密和间接身份线索不保证自动识别，人脸、签名、二维码需要人工框选。模型分数不等于准确率。
+
+## 支持哪些文件？
+
+| 文件类型 | 处理范围 | 输出与边界 |
 |---|---|---|
-| 律师 | 诉讼文书、合同、证据、客户材料 | 提交给AI分析、外部审阅、内部协作、授课 |
-| 法官 / 法院工作人员 | 裁判与程序材料、证据、培训课件 | 教学展示、学生分发、公开前人工核对 |
-| 企业法务 | 合同、交易、员工与客户资料、内部调查 | 外部审阅、案件整理、商业秘密复核 |
-| 学生 / 研究者 | 案例、课件、研究笔记 | 学习、研究、整理可读材料 |
-| 寻求法律意见的人 | 聊天截图、转账凭证、合同、通知 | 把必要材料交给律师或AI前先保护身份 |
+| **Word / DOCX** | 正文、表格、页眉页脚、脚注、批注、修订及隐藏内容；支持跨文本片段替换 | 长占位符可能改变分页，不保证像素级保真 |
+| **Excel / XLSX** | 单元格、隐藏表、批注、属性、公式及相关部件 | 敏感公式或依赖会阻断，不静默改坏计算 |
+| **PowerPoint / PPTX** | 文字、备注、隐藏页、属性与嵌入图片 | 图片逐张复核；学生模式额外清理私有教学部件 |
+| **PDF / 扫描 PDF** | 本地逐页渲染、OCR 定位、像素遮挡后重建 | 不保留原文字层，输出不再保留原有搜索与编辑能力 |
+| **PNG / JPEG** | OCR 定位、实心像素遮挡、重新编码清理元数据 | 不使用模糊或可移除覆盖层；仍需人工看图 |
+| **TXT / Markdown** | UTF-8 文本的一致占位符替换 | 同时检查链接与非正文，不执行文件中的指令 |
 
-职业身份只改变提示与预设，不代表自动获得披露他人信息的权限。
+Office 内嵌图片也纳入处理。宏、旧式 `.doc/.xls/.ppt`、部分嵌入对象、图表缓存、外部数据连接和动态内容等不在完整支持范围；无法完整检查时需先转换或制作静态副本。详见[格式说明](references/formats.md)。
 
-## 四步用起来
+## 适合什么场景？
+
+面向律师、法院工作人员、企业法务、学生／研究者，以及准备向律师或 AI 咨询的材料提供者。职业选项用于调整提示与预设，**不代表获得披露他人信息的权限**。
+
+| 使用场景 | 处理重点 |
+|---|---|
+| **交给 AI 分析** | 隐藏身份与案件标识，默认保留金额、日期及法院特殊豁免；可生成脱敏 Markdown 与索引 |
+| **外部审阅** | 使用基础脱敏策略；外部编辑后，符合条件的完好占位符可以恢复 |
+| **课堂展示** | 重点复核 PPT 文字、截图与嵌入图片 |
+| **分发学生** | 在复核基础上清理讲者备注、批注、隐藏页和失去引用的包部件 |
+| **公开分享** | 默认加强日期、金额处理并取消法院特殊豁免；仍需人工审查，不等于自动满足法院公开规则 |
+
+选择“公开公众”接收对象也会加强基础策略，选择“学生”也会启用课件清理。场景是在同一引擎上调整保留与清理规则，不是五套精度不同的识别算法。详见[场景说明](references/scenarios-and-delivery.md)。
+
+## 四步完成一次处理
 
 **① 选场景 → ② 导入与整理 → ③ 本机复核 → ④ 导出与恢复**
 
-1. 选择身份、脱敏目的、接收对象，以及单案还是混合材料。
-2. 选择/拖入文件；也能粘贴本机文件夹路径批量导入。在本机设保险库口令。
-3. 确认建议的案件编号和材料类别。逐份查看文字与图片，补充漏检、框选签名/人脸/二维码，同名不同人可单独编号。
-4. 导出后查看实际状态，点醒目的 **「一键打开交付文件夹」**，直接在系统文件管理器找到结果；也能复制完整文件夹路径。
+1. **选场景**：确定身份、用途、接收对象和单案／混合材料范围。
+2. **导入与整理**：选择或拖入文件，也可用本机文件夹路径批量导入；在本机设置保险库口令，确认案件归属和材料类别。
+3. **本机复核**：逐份核对文字与图片，补充漏检、调整保留项、框选图像区域，必要时区分同名不同人。
+4. **导出与恢复**：检查实际状态，通过“一键打开交付文件夹”找到副本；按需分享文件，恢复操作另在本机完成。
 
-不是“看见几个黑块就算完成”：缺依赖、打不开的内容、不支持的部件、未复核文件或残留问题，都不能当作检查通过。
+`NEEDS_REVIEW` 表示仍待复核，`FAILED` 表示失败；`CHECKED` 仅表示本次机械检查与本地复核完成，**不表示零漏检或取得匿名化认证**。原件不被覆盖，重复文件只标记、不自动删除，多案文件不自动拆分。
 
-## 真实界面，不是概念图
+## 实际工作台
 
-以下截图来自本机实际运行的 **2.0.1发布版**，仅使用生成的虚构样本。姓名、电话、邮箱等为测试字符串，不是真实案件或真实客户资料。
+以下为 **2.0.1 发布版的真实运行截图，全部使用虚构合成样本**，不是概念界面或真实客户材料。
 
-### 1. 根据身份、用途与接收对象选择策略
-![场景与目的：本地桌面工作台](docs/screenshots/01-workbench.png)
+![本地工作台：选择场景与用途](docs/screenshots/01-workbench.png)
 
-### 2. 混合文件按案件与材料性质整理，建议可修改
-![案件归属与材料类别确认](docs/screenshots/02-classification.png)
+<details>
+<summary>展开查看案件整理、图像复核与导出界面</summary>
 
-### 3. 图片原图与像素遮挡预览；可拖框补充
-![原图与脱敏预览，合成数据](docs/screenshots/03-image-review.png)
+**案件归属与材料类别，可手动确认和修改**
+![案件整理](docs/screenshots/02-classification.png)
 
-### 4. 结果明确可找：一键打开交付文件夹、复制路径、加密恢复
-![实际导出通过与交付文件夹入口](docs/screenshots/04-delivery.png)
+**原图与像素遮挡预览，可拖框补充**
+![图像复核](docs/screenshots/03-image-review.png)
 
-具体点击、检查状态和测试记录见[验收说明](docs/VERIFICATION.md)，不是把示意图冒充测试结果。
+**实际导出状态、交付文件夹入口与恢复功能**
+![交付与恢复](docs/screenshots/04-delivery.png)
 
-## 主要功能与真实边界
+</details>
 
-### 1. 基础隐私识别
+## 得到什么，如何恢复？
 
-本地组合“确定性规则＋校验码＋案件词典＋spaCy中文实体识别＋人工复核”，识别候选包括：
-
-- 姓名、组织、地址、手机、座机、邮箱。
-- 身份证候选、金融账户、统一社会信用代码候选、车牌、产权标识。
-- 案号、合同编号、项目代号、用户指定机密。
-- 部分未成年人、健康、亲属关系、唯一股东等间接识别线索。
-- 根据公开分享策略进一步识别日期与金额；用户可按本次用途明确调整。
-
-中文模型不是经过法律专门训练的完整关系推理模型；英文姓名、人脸、签名、二维码、所有商业秘密和所有间接身份线索**不在全自动识别承诺内**。模型分数不是校准后的准确率。
-
-### 2. 支持哪些格式？
-
-| 格式 | 如何处理 | 注意什么 |
-|---|---|---|
-| Word / DOCX | 跨文本片段替换，检查正文、表格、页眉页脚、脚注、批注、修订和隐藏内容 | 长占位符可能改变分页，不承诺像素级保真 |
-| Excel / XLSX | 检查单元格、隐藏表、批注、属性、公式及相关部件 | 敏感公式/依赖会阻断，不静默改坏计算 |
-| PowerPoint / PPTX | 检查文字、备注、隐藏页、属性和嵌入图片 | 教学图片需逐图复核；学生模式还清理私有教学部件 |
-| PDF / 扫描PDF | 本地逐页渲染、OCR定位、像素遮挡后重建 | 输出不保留原文字层，接受不可搜索/不可编辑的取舍 |
-| PNG / JPEG | OCR定位＋实心像素覆盖、重新编码清理元数据 | 不用模糊、不用可移除的覆盖层，仍需人工看图 |
-| TXT / Markdown | UTF-8文本中的一致占位符替换 | 检查链接与非正文；不自动执行文档里的指令 |
-
-Office内嵌图片也会处理。宏、旧式`.doc/.xls/.ppt`、部分嵌入对象、图表缓存、外部数据连接、动态内容与无法完整检查的部件不伪称已支持，需先转换或制作静态副本。
-
-### 3. 三类分享策略，五种实际场景
-
-- **AI分析**：默认保留金额、日期及法院特殊豁免，隐藏身份与案件标识；额外输出Markdown、来源索引和日期出现位置索引。
-- **外部审阅**：使用同等保守的基础识别，不夸大成另一种更高精度算法；可在外部编辑后恢复完好占位符。
-- **课堂展示**：重点检查PPT文字、截图与嵌入图片。
-- **分发学生**：清除PPT讲者备注、批注、隐藏页和失去引用的包部件，避免“页不见了但压缩包里还在”。
-- **公开分享**：默认加强日期、金额等处理，取消法院特殊豁免；仍不等于自动完成法院公开规则审查或法律匿名化认证。
-
-接收对象选择“公开公众”也会提升基础策略；选择“学生”也会清理课件私有部件。参见[场景与交付说明](references/scenarios-and-delivery.md)。
-
-### 4. 自动整理，但不乱猜案件
-
-- 根据明确的案号/合同编号提供分组建议，不凭同名就自动并案。
-- 没有可靠标识或含多个标识的文件进入`PENDING`，需要本机确认。
-- 支持CASE001/CASE002等案件、中性类别目录和COMMON通用资料。
-- 同一确认案件内同字面实体统一占位符；同名不同人可填写不同区分编号。
-- 重复文件只标记，不删除；不自动拆分一个文件里的多个案件，不虚构证据证明力。
-
-### 5. AI读取版与恢复
-
-- Markdown来自已复核的脱敏内容，保留区域定位、OCR提示和修订/隐藏提示，不生成虚构案情摘要。
-- 手工遮挡覆盖到的OCR行不再进入Markdown，避免遮掉的内容从读取版泄漏。
-- AES-256-GCM加密保险库＋scrypt派生密钥。口令只在本机输入。
-- Office/TXT/MD编辑恢复只认当前任务完好的精确占位符；缺失、改写、复制或图片变化会产生冲突。
-- PDF/图像可解密取回原件，不承诺合并外部修改。
-
-## 输出究竟放在哪里？
-
-默认在本机：
+默认任务目录为 `~/Documents/信息隐身衣任务/任务-随机号/`：
 
 ```text
-~/Documents/信息隐身衣任务/任务-随机号/
-├── share/                       候选对外副本：结果页一键打开
+任务-随机号/
+├── share/                       候选对外副本
 │   ├── 案件001/02_合同协议/file-001.docx
 │   ├── 案件001/02_合同协议/file-001.docx.md
 │   ├── 案件002/03_证据材料/file-002.png
-│   ├── 材料与来源索引.md           AI读取选项开启时
+│   ├── 材料与来源索引.md           开启 AI 读取选项时生成
 │   ├── 日期索引.md
 │   └── audit-report.json
-├── private/task.lpcv            内部加密保险库，不随结果分享
-└── restored/                    内部恢复件，不随结果分享
+├── private/task.lpcv            本机加密保险库
+└── restored/                    本机恢复件
 ```
 
-**只考虑发送share里本次需要的文件，不要直接打包整个任务目录。** 文件夹链接通过经过校验的本机服务打开系统文件管理器（Windows资源管理器 / macOS Finder），不依赖浏览器对`file://`的兼容。退出服务后可重新打开应用或复制路径手工前往。
+**只分享 `share/` 中本次需要的文件，不要打包整个任务目录。** 保险库、映射、原件和恢复件留在可信端。结果页可打开系统文件管理器或复制完整路径。
 
-## 安装：Windows 与 macOS
+- **取回原件**：解密恢复原始文件；PDF 和图片支持此方式，不合并外部修改。
+- **恢复编辑副本**：Office／TXT／Markdown 只恢复当前任务中完好的精确占位符；占位符缺失、改写、复制或图片变化会产生冲突，不伪装成成功。
+- **保管口令**：只在本机输入，不发给 Agent；口令遗失没有恢复后门。
 
-**Windows**：先安装 Python 3.12、Tesseract 与 Poppler，再从项目文件夹运行 `py -3.12 scripts/install.py --with-deps --app`。安装后从开始菜单打开“贝卡文件脱敏”，或双击 `启动贝卡文件脱敏.cmd`。中文 OCR 语言包及详细分步操作见[Windows安装教程](docs/INSTALL.md#windows)。
+## 安装与调用
+
+桌面适配目标为 **Windows 11 x64 与 macOS，Python 3.12**；不支持 iPhone／iPad。本项目需要安装依赖，不提供内置全部依赖的免安装 `.exe`。Windows 原生 CI 与实体桌面验收是不同证据，详见[平台验收矩阵](docs/VERIFICATION.md#平台验收矩阵)。
+
+### Windows
+
+1. 安装 Python 3.12、Tesseract（含中文语言包）和 Poppler。
+2. 下载并解压[发布包](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/releases/latest)，在项目目录运行：
+
+```powershell
+py -3.12 scripts/install.py --with-deps --app
+```
+
+3. 从开始菜单打开“贝卡文件脱敏”，或双击 `启动贝卡文件脱敏.cmd`。
 
 ### macOS
 
-完整教程与升级/卸载见[安装文档](docs/INSTALL.md)。普通用户可以从[Release](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/releases/latest)下载Skill ZIP并解压；开发者也可：
+可下载发布包解压，也可用 Git 获取源码：
 
 ```bash
 git clone https://github.com/lyyrebecca/becca-offline-file-redaction-skills.git
 cd becca-offline-file-redaction-skills
 
-# 首次准备依赖，需要联网；未安装Homebrew时先按其官方说明安装
+# 首次安装依赖需要联网；Homebrew 需事先安装
 brew install python@3.12 tesseract tesseract-lang poppler
 "$(brew --prefix python@3.12)/bin/python3.12" scripts/install.py --with-deps --app
 ```
 
-然后双击`~/Applications/信息隐身衣.app`。单独安装可选LibreOffice，才启用PPT额外像素PDF：
+随后打开 `~/Applications/信息隐身衣.app`。需要额外导出 PPT 像素 PDF 时，再安装可选组件：
 
 ```bash
 brew install --cask libreoffice
 ```
 
-安装目标存在时拒绝覆盖，升级先备份；不替用户修改其他Agent的配置。启动器是当地安装环境的轻入口，不把本机`.app`当作任意电脑双击可用的独立安装包。
+安装目标已存在时不会覆盖，升级前应备份。启动器依赖当前电脑的安装环境，不是可复制到任意电脑直接运行的独立安装包。详细依赖、升级与卸载见[安装教程](docs/INSTALL.md)。
 
-### 在Codex中调用
+### 在 Codex 中使用
 
 ```text
 $legal-privacy-cloak
-我是律师，要把本机一批合同、证据和截图脱敏后交给AI分析。
+我是律师，要把本机一批合同、证据和截图脱敏后交给 AI 分析。
 请打开本地工作台；不要读取我的原文，也不要向我索取口令。
 ```
 
-正式展示名称就是本页标题；技术调用名保留`legal-privacy-cloak`以保证格式兼容。自动安装目前面向Codex；其他支持SKILL.md的Agent需按其自身规则接入，不能据此宣称所有Agent都已测试。
+自动安装目前面向 Codex；其他支持 `SKILL.md` 的 Agent 需按各自规则接入，未宣称全部测试通过。日常文件处理不调用外部大模型；与 Agent 聊天的说明仍可能消耗相应产品额度。
 
-## 测试、速度和成本
+## 已验证什么？
 
-- 发布前本地重新运行完整回归；[测试日志和证据说明](docs/VERIFICATION.md)区分历史2.0.0验收与本次2.0.1复验。
-- 既有验收：8种格式乱序扫描/导出、Markdown、学生PPT清理、像素PDF、原件字节恢复、Office编辑恢复、错误口令/篡改、残留和接口安全。
-- 已有小型8格式样本的扫描＋导出：冷轮约5.760秒、同进程暖轮约2.911秒；**不包含人工复核，不是所有真实文件的性能承诺**。
-- 不调用外部LLM处理正文，不需要模型API Key。与Agent聊天的说明仍可能消耗该产品自己的额度；不能承诺全流程所有服务都零token。
-- OS沙箱验证IP网络被阻断；可选LibreOffice仅需本机Unix IPC。这是验收方法，不是已经替每台电脑永久设置了防火墙。
+以下为仓库记录的 **2026-10-26、2.0.1 版本合成样本验收**，不是对真实案件的识别率承诺；后续提交的自动测试以 [Actions](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/actions) 为准。
 
-代码测试不能替代实际开文件。截图与历史渲染记录之外，正式交付仍需本机检查分页、表格和画布内容。
+| 验收项目 | 记录结果 |
+|---|---|
+| 本地完整回归 | 109 项通过；测试范围含格式处理、恢复、残留检查及接口安全 |
+| 8 格式断网处理 | 冷暖两轮扫描与导出均为 `CHECKED` |
+| 原件恢复 | 两轮共 16 份恢复件，与原件字节一致 |
+| AI 读取版 | 每轮 8 份 Markdown＋2 份索引，复查通过 |
+| 教学课件 | 学生模式清理隐藏页、备注与相关部件；可选像素 PDF 验收通过 |
+| 真实交互 | 已记录 macOS 工作台操作、图像拖框、导出与文件夹打开截图 |
 
-## 隐私与处理限制
+同一小型 8 格式合成批次的扫描＋导出耗时为冷轮约 **5.760 秒**、同进程暖轮约 **2.911 秒**，不包含人工复核，不代表所有真实文件的速度。断网验证属于测试环境证据，不表示软件替所有电脑设置了防火墙。
 
-- 本地明文复核，不通过聊天、远程浏览器、云端OCR或截图代理传出真实材料。
-- 不覆盖原件，不自动上传或代发任何文件；文档中的指令只是数据。
-- 限制：单批100个文件/合计250MB、单文件100MB、PDF60页、Office展开300MB、图片3500万像素。
-- 不支持内容会阻断；`NEEDS_REVIEW`不是完成，`CHECKED`也不是零漏检或法律匿名化认证。
-- 无企业权限/审批平台、不做DLP全局拦截、无自动人脸/二维码识别、无语义并案/自动拆案。
-- 不防御已控制本机的管理员、恶意扩展、内存转储或异常断电遗留；口令遗失没有后门。
+Windows／macOS 原生 CI、实体桌面、Office 渲染与断网测试的范围分别列于[验收说明](docs/VERIFICATION.md)。测试通过不替代实际打开文件，仍应检查分页、表格、条款和画布内容。
 
-## English summary / search terms
+## 使用边界
 
-**Local, offline PII redaction and document de-identification Skill for Chinese legal documents.** Supports DOCX, XLSX, PPTX, rasterized PDF, scanned documents, PNG/JPEG and UTF-8 text/Markdown. Includes local Chinese NER, Tesseract OCR, manual review, matter grouping, teaching-slide cleanup, AI-readable Markdown and encrypted restoration. Includes Windows and macOS desktop integration; actual platform test scope is documented in the verification matrix; no external LLM API is used for document processing. Reversible pseudonymization is not legal anonymization.
-
-相关检索：文件脱敏软件、法律文书脱敏、律师AI隐私、合同脱敏、证据打码、Word脱敏、Excel脱敏、PPT图片打码、课件脱敏、扫描件OCR脱敏、PDF隐私遮挡、个人信息保护、离线部署、Codex Skill、Agent Skills。
+- **文件规模**：单批最多 100 个文件、合计 250 MB；单文件 100 MB；PDF 60 页；Office 展开 300 MB；图片 3500 万像素。
+- **人工判断**：不承诺识别全部敏感信息、所有格式完全保真、自动判断披露合法性或商业秘密；无法完整检查的内容会阻断。
+- **产品范围**：没有企业权限审批平台、全局 DLP 拦截、自动人脸／二维码识别、语义并案或自动拆案。
+- **本地边界**：原文复核在使用者本机完成，不通过聊天、云端 OCR 或远程截图回传真实材料；不防御已控制本机的管理员、恶意扩展、内存转储及异常断电遗留。
 
 ## 作者、反馈与许可
 
-**维护者：lyyrebecca**
-GitHub：[lyyrebecca](https://github.com/lyyrebecca) · 微信：**shirebeccaha** · 邮箱：**1849883220@qq.com**
+**维护者：lyyrebecca** · [GitHub](https://github.com/lyyrebecca) · 微信：**shirebeccaha** · 邮箱：**1849883220@qq.com**
 
-署名在软件、欢迎/关于与说明中，不默认进入法律交付文件。问题请用[公开Issue](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/issues)说明格式、版本、无原文错误码和合成复现步骤，**不要上传真实案件原文、口令、保险库或映射**。
+署名仅出现在软件与项目说明中，不默认写入法律交付文件。反馈请提交[公开 Issue](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/issues)，提供格式、版本、错误码与合成复现步骤，不上传真实案件、口令、保险库或映射。
 
-沿用此前Skill发布的分层许可说明：见[LICENSE](LICENSE)与[第三方声明](THIRD_PARTY_NOTICES.md)。不对全部依赖、模型、资料和用户提供图标作统一MIT或商用授权声明。
+本项目采用分层许可，见 [LICENSE](LICENSE) 与[第三方声明](THIRD_PARTY_NOTICES.md)；不对全部依赖、模型、资料和用户图标作统一 MIT 或商用授权声明。
 
-> 可检索优化通过中英文项目名、简介、Topics、清晰文档和公开Release实现；搜索引擎收录与排序由平台决定，不承诺立即收录或特定排名。
+**English:** Local, offline redaction and reversible de-identification for Chinese legal documents. Includes document/image review, matter grouping, teaching-slide cleanup, AI-readable Markdown and encrypted restoration. Reversible pseudonymization is not legal anonymization. See [English documentation](README.en.md).
