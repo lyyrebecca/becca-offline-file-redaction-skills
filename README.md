@@ -1,5 +1,5 @@
 <div align="center">
-<img src="assets/icon-256.png" width="104" alt="贝卡文件脱敏图标">
+<img src="assets/brand-mark.png" width="104" height="104" alt="贝卡文件脱敏图标：按原始比例裁剪">
 
 # 信息隐身衣 · 贝卡文件脱敏
 
