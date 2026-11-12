@@ -17,6 +17,10 @@
 
 本机摘要：[2.4.2 合成验收记录](evidence/2.4.2-local.json)。
 
+## 跨平台测试修正
+
+Windows 原生 CI 发现四项旧测试仍使用 POSIX 权限位、未归一化的斜杠或仅拦截 subprocess 的文件夹打开方式。本次按平台语义修正断言：全平台核验保险库加密与解密，POSIX 另查 0600；模拟平台路径用 as_posix 比较；工作台接口核验传给平台适配层的精确目标，原生打开方式由专门测试覆盖。未跳过测试或解除导出门槛。Windows 的 chmod 不等于 NTFS ACL 加固，不宣称具有 POSIX 0600 的同等保证。
+
 ## 原生 CI 与人工验收分开看
 
 [Windows / macOS 工作流](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/actions/workflows/ci.yml)在两种原生 runner 上安装模型及 OCR，执行发布自检、Node 交互测试、smoke、合成多格式端到端与 Python 回归。以 **2.4.2 对应提交**的实际结果为准，不把旧版绿色徽章当作新版已通过。

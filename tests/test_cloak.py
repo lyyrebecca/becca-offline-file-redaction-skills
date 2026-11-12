@@ -94,7 +94,12 @@ def test_vault_authentication(tmp_path,mutation):
     if mutation=='truncated':p.write_bytes(p.read_bytes()[:15])
     with pytest.raises(Exception):open_vault(p,'different-passphrase' if mutation=='wrong_password' else PW)
 def test_permissions(tmp_path):
-    p=tmp_path/'x';seal(p,{},PW);assert p.stat().st_mode&0o777==0o600
+    p=tmp_path/'x';seal(p,{'secret':PERSON},PW)
+    assert open_vault(p,PW)=={'secret':PERSON}
+    assert PERSON.encode() not in p.read_bytes()
+    # Windows st_mode reports DOS read-only state, not a POSIX mode or NTFS ACL.
+    # Verify encryption on all platforms, and the 0600 contract where it exists.
+    if os.name!='nt':assert p.stat().st_mode&0o777==0o600
 
 @pytest.mark.parametrize('suffix',['.txt','.md','.docx','.xlsx','.pptx'])
 def test_text_office_roundtrip(tmp_path,autojob,suffix):

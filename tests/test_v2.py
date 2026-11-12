@@ -121,13 +121,14 @@ def test_desktop_security_and_api(tmp_path,monkeypatch):
             if s['status']!='BUSY':break
             time.sleep(.2)
         assert s['status']=='DONE' and s['result']['verification']=='CHECKED'
-        import subprocess
+        from cloak import platform_support as ps
         calls=[]
         with monkeypatch.context() as patch:
-            patch.setattr(subprocess,'run',lambda args,**kw:(calls.append(args) or subprocess.CompletedProcess(args,0)))
+            patch.setattr(ps,'open_folder',lambda path:calls.append(str(path)))
             post('/open',{'kind':'share'}).read()
-        # The opener differs per OS (os.startfile / open / xdg-open); the target must not.
-        assert len(calls)==1 and calls[0][-1]==str(Path(s['workspace'])/'share')
+        # This API test verifies the exact folder passed to the platform adapter.
+        # Native startfile/open/xdg-open behaviour has separate platform tests.
+        assert calls==[str(Path(s['workspace'])/'share')]
         restored=json.load(post('/restore',{'fi':0}));assert Path(restored['output']).read_text()==PHONE
     finally:result['server'].shutdown();t.join(15)
 

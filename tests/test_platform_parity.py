@@ -71,16 +71,16 @@ def test_windows_tool_candidates_probe_program_files(monkeypatch):
 def test_macos_tool_candidates_include_homebrew(monkeypatch):
     as_platform(monkeypatch, macos=True)
     monkeypatch.delenv("LPC_TESSERACT", raising=False)
-    candidates = [str(item) for item in ps._tool_candidates("tesseract")]
+    candidates = [item.as_posix() for item in ps._tool_candidates("tesseract")]
     assert "/opt/homebrew/bin/tesseract" in candidates
     assert any(name.endswith("LibreOffice.app/Contents/MacOS/soffice")
-               for name in (str(item) for item in ps._tool_candidates("soffice")))
+               for name in (item.as_posix() for item in ps._tool_candidates("soffice")))
 
 
 def test_linux_tool_candidates_include_usr_bin(monkeypatch):
     as_platform(monkeypatch)
     monkeypatch.delenv("LPC_TESSERACT", raising=False)
-    assert any(str(item) == "/usr/bin/tesseract" for item in ps._tool_candidates("tesseract"))
+    assert any(item.as_posix() == "/usr/bin/tesseract" for item in ps._tool_candidates("tesseract"))
 
 
 def test_open_folder_macos_uses_open(monkeypatch, tmp_path):
