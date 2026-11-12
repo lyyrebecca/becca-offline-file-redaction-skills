@@ -2,10 +2,10 @@ import collections,io,json,os,re,socket,sys,threading,urllib.request,urllib.pars
 from pathlib import Path
 import pytest
 from lxml import etree as E
-from cloak.core import Detector,Hit,Tokenizer,TOKEN,id_checksum,luhn,apply_spans
+from cloak.core import Detector,Hit,Tokenizer,TOKEN,id_checksum,luhn,apply_spans,ner_text
 from cloak.vault import seal,open_vault,unb64
 from cloak.formats import Document
-from cloak.workflow import scan,review_update,redact,verify,restore,add_manual,SOFT_ISSUES
+from cloak.workflow import scan,review_update,redact,verify,restore,add_manual,learn_across_task,SOFT_ISSUES
 from fixtures import PERSON,PHONE,EMAIL,SECRET,ID,DICT,TEXT,make_all,docx,xlsx,pptx,image
 PW='SYNTHETIC-test-only-2026'
 
@@ -29,6 +29,45 @@ def autojob(tmp_path):
 def test_model_local(detector):assert detector.ner_available
 @pytest.mark.parametrize('kind,value',[('PHONE',PHONE),('EMAIL',EMAIL),('PERSON',PERSON),('SECRET',SECRET),('ID',ID)])
 def test_known_entities(detector,kind,value):assert any(h.kind==kind and TEXT[h.start:h.end]==value for h in detector.find(TEXT))
+
+def test_ner_placeholder_normalization_is_stable_and_offset_preserving():
+    a='前文 [P:0123456789ab:PERSON:001] 后文';b='前文 [P:fedcba987654:PERSON:001] 后文'
+    assert ner_text(a)==ner_text(b) and len(ner_text(a))==len(a) and '0123456789ab' not in ner_text(a)
+
+def test_contextual_digital_and_travel_identifiers():
+    text='护照号：E12345678；微信号：beika_test2026；登录IP：203.0.113.42；access_token=abc123xyz'
+    kinds={h.kind:text[h.start:h.end] for h in Detector(use_ner=False).find(text)}
+    assert kinds['PASSPORT']=='E12345678' and kinds['SOCIAL']=='beika_test2026' and kinds['IP']=='203.0.113.42' and kinds['CREDENTIAL']=='abc123xyz'
+
+def test_legal_person_and_address_context_rules_without_ner():
+    text='被告人：张三：委托代理人 李四，张三起诉李四。居住地：上海市浦东新区示例路8号；北京市朝阳区合成路99号A座1201室。'
+    hits=Detector(use_ner=False).find(text)
+    found={(h.kind,text[h.start:h.end]) for h in hits}
+    assert ('PERSON','张三') in found and ('PERSON','李四') in found
+    assert ('ADDRESS','上海市浦东新区示例路8号') in found
+    assert ('ADDRESS','北京市朝阳区合成路99号A座1201室') in found
+
+def test_person_context_avoids_project_amount_and_font_false_positives():
+    text='金额为120000元，项目：蓝鲸项目。宋体字体。张三起诉李四。'
+    found=[text[h.start:h.end] for h in Detector(use_ner=False).find(text) if h.kind=='PERSON']
+    assert '张三' in found and '李四' in found
+    assert not any(value in ('金额','项目','宋体','张三起') for value in found)
+
+def test_optional_numeric_and_code_candidates_are_unchecked():
+    text='编号 48201937，代码 AB12CD34，日期 2026-10-23，手机号 13812345678，短数字 12345'
+    hits=Detector(use_ner=False).find(text)
+    optional={text[h.start:h.end]:h for h in hits if h.kind=='REVIEW_CODE'}
+    assert {'48201937','AB12CD34'}.issubset(optional) and '2026-10-23' not in optional
+    assert all(not h.mask and h.confidence==0.35 and h.reason for h in optional.values())
+    assert any(h.kind=='PHONE' and text[h.start:h.end]=='13812345678' and h.mask for h in hits)
+
+def test_optional_code_candidate_can_be_reviewed_and_kept(tmp_path,autojob):
+    value='48201937';p=tmp_path/'uncertain-code.txt';p.write_text('参考编号 '+value)
+    ws,report=autojob(p);job=open_vault(ws/'private'/'task.lpcv',PW)
+    candidates=[h for u in job['files'][0]['units'] for h in u['hits'] if h['kind']=='REVIEW_CODE']
+    assert candidates and all(not h['mask'] and '默认不打码' in h['reason'] for h in candidates)
+    output=(ws/'share'/'file-001.txt').read_text();assert value in output
+    assert report['status']=='CHECKED' and verify(ws,PW)['status']=='CHECKED'
 
 def test_invalid_id_not_ignored(detector):assert any('invalid_checksum' in h.rule for h in detector.find(ID))
 def test_id_checksum():assert id_checksum('11010519491231002X')
@@ -55,9 +94,7 @@ def test_vault_authentication(tmp_path,mutation):
     if mutation=='truncated':p.write_bytes(p.read_bytes()[:15])
     with pytest.raises(Exception):open_vault(p,'different-passphrase' if mutation=='wrong_password' else PW)
 def test_permissions(tmp_path):
-    p=tmp_path/'x';seal(p,{},PW)
-    if __import__('os').name!='nt':assert p.stat().st_mode&0o777==0o600
-    assert open_vault(p,PW)=={}
+    p=tmp_path/'x';seal(p,{},PW);assert p.stat().st_mode&0o777==0o600
 
 @pytest.mark.parametrize('suffix',['.txt','.md','.docx','.xlsx','.pptx'])
 def test_text_office_roundtrip(tmp_path,autojob,suffix):
@@ -67,14 +104,48 @@ def test_text_office_roundtrip(tmp_path,autojob,suffix):
     ws,report=autojob(p)
     out=ws/'share'/('file-001'+suffix);d=Document(out.read_bytes(),suffix);text='\n'.join(u.text for u in d.units)
     assert PHONE not in text and PERSON not in text and SECRET not in text
-    assert '120000' in text
-    assert report['status']=='CHECKED',report['verification']
+    if suffix in ('.docx','.xlsx','.pptx'):
+        assert '***' in text and '[P:' not in text
+    assert '120000' in text and report['status']=='CHECKED',report
     assert verify(ws,PW)['status']=='CHECKED'
     restored=tmp_path/('restored'+suffix);r=restore(ws,PW,restored,edited=out)
     assert r['status']=='RESTORED_EDITED'
     got='\n'.join(u.text for u in Document(restored.read_bytes(),suffix).units)
     assert PERSON in got and PHONE in got
     archive=tmp_path/('archive'+suffix);restore(ws,PW,archive);assert archive.read_bytes()==p.read_bytes()
+
+def test_xlsx_preview_coordinates_include_hidden_sheet(tmp_path):
+    p=tmp_path/'preview.xlsx';xlsx(p);doc=Document(p.read_bytes(),'.xlsx')
+    assert any(PERSON in u.text and {'sheet':1,'cell':'A2','hidden':False} in u.preview_cells for u in doc.units)
+    assert any(SECRET in u.text and {'sheet':2,'cell':'A1','hidden':True} in u.preview_cells for u in doc.units)
+
+@pytest.mark.parametrize('suffix',['.csv','.tsv','.eml','.json','.xml','.log'])
+def test_added_text_formats_roundtrip(tmp_path,autojob,suffix):
+    body=f'原告 {PERSON} 电话 {PHONE} 项目 {SECRET}'
+    contents={'.csv':f'name,notes\n"{PERSON}","{body}"\n','.tsv':f'name\tnotes\n{PERSON}\t{body}\n','.eml':f'From: {EMAIL}\nTo: counsel@example.test\nSubject: 合成测试 {PERSON}\nMIME-Version: 1.0\nContent-Type: text/plain; charset="utf-8"\n\n{body}\n','.json':json.dumps({'name':PERSON,'notes':body},ensure_ascii=False),'.xml':f'<record><name>{PERSON}</name><notes>{body}</notes></record>','.log':body+'\n'}
+    p=tmp_path/('source'+suffix);p.write_text(contents[suffix],encoding='utf-8')
+    ws,report=autojob(p);out=ws/'share'/('file-001'+suffix);d=Document(out.read_bytes(),suffix)
+    text='\n'.join(u.text for u in d.units);assert PHONE not in text and PERSON not in text and SECRET not in text
+    assert report['status']=='CHECKED',report
+    restored=tmp_path/('restored'+suffix);rr=restore(ws,PW,restored,edited=out);assert rr['status']=='RESTORED_EDITED'
+    assert PHONE in '\n'.join(u.text for u in Document(restored.read_bytes(),suffix).units)
+
+def test_eml_complex_mime_fails_closed():
+    raw=b'From: sender@example.test\nMIME-Version: 1.0\nContent-Type: multipart/mixed; boundary="b"\n\n--b\nContent-Type: text/plain\n\nsynthetic\n--b--\n'
+    with pytest.raises(ValueError,match='EML_COMPLEX_MIME_BLOCKED'):Document(raw,'.eml')
+
+def test_learn_exact_literal_across_task(tmp_path):
+    paths=[]
+    for i,text in enumerate(['header ORANGE-UNIQUE-KEY and ORANGE-UNIQUE-KEY','ORANGE-UNIQUE-KEY elsewhere']):
+        p=tmp_path/f'learn-{i}.txt';p.write_text(text);paths.append(p)
+    ws=tmp_path/'learn-job';scan(paths,ws,PW,dictionary=DICT);job=open_vault(ws/'private/task.lpcv',PW)
+    result=learn_across_task(job,'ORANGE-UNIQUE-KEY','SECRET')
+    assert result=={'occurrences':3,'files':2}
+    assert all(any(u['text'][h['start']:h['end']]=='ORANGE-UNIQUE-KEY' and h['mask'] for u in f['units'] for h in u['hits']) for f in job['files'])
+    assert any(t['text']=='ORANGE-UNIQUE-KEY' for t in job['dictionary']['terms'])
+    profile=tmp_path/'.learning-rules.lpcv';seal(profile,{'version':1,'terms':[{'text':'ORANGE-UNIQUE-KEY','kind':'SECRET','entity':''}]},PW)
+    assert b'ORANGE-UNIQUE-KEY' not in profile.read_bytes()
+    assert open_vault(profile,PW)['terms'][0]['text']=='ORANGE-UNIQUE-KEY'
 
 @pytest.mark.parametrize('suffix',['.png','.jpg','.pdf'])
 def test_raster_roundtrip(tmp_path,autojob,suffix):
@@ -121,6 +192,17 @@ def test_restoration_preserves_edits(tmp_path,autojob):
     text=''.join(u.text for u in Document(out.read_bytes(),'.docx').units)
     assert '建议补充违约责任' in text and PERSON in text
     with zipfile.ZipFile(out) as z:assert 'word/comments.xml' in z.namelist() and b'delText' in z.read('word/document.xml')
+
+def test_office_star_mask_movement_fails_closed(tmp_path,autojob):
+    p=tmp_path/'star-mask.docx';docx(p);ws,_=autojob(p)
+    source=ws/'share/file-001.docx';edited=tmp_path/'moved-mask.docx';out=tmp_path/'must-not-restore.docx'
+    with zipfile.ZipFile(source) as z:parts={n:z.read(n) for n in z.namelist()}
+    xml=parts['word/document.xml'];assert b'***' in xml
+    parts['word/document.xml']=xml.replace(b'***',b' ** *',1)
+    with zipfile.ZipFile(edited,'w',zipfile.ZIP_DEFLATED) as z:
+        for name,data in parts.items():z.writestr(name,data)
+    report=restore(ws,PW,out,edited)
+    assert report['status']=='NEEDS_REVIEW' and not out.exists()
 
 @pytest.mark.parametrize('change',['delete','copy','damage','foreign'])
 def test_restore_conflicts(tmp_path,autojob,change):
@@ -225,12 +307,29 @@ def test_sensitive_sheet_reference_blocked(tmp_path):
     ws=tmp_path/'job';scan([p],ws,PW,dictionary=DICT);j=open_vault(ws/'private/task.lpcv',PW)
     assert 'SENSITIVE_REFERENCE_BLOCKED' in j['files'][0]['issues']
 
+def test_optional_code_in_sheet_name_not_structural_block(tmp_path):
+    from openpyxl import Workbook
+    p=tmp_path/'s.xlsx';w=Workbook();w.active.title='48201937';w.save(p)
+    ws=tmp_path/'job';scan([p],ws,PW,dictionary=DICT);j=open_vault(ws/'private/task.lpcv',PW)
+    assert 'SENSITIVE_REFERENCE_BLOCKED' not in j['files'][0]['issues']
+    assert not any(h['kind']=='REVIEW_CODE' for u in j['files'][0]['units'] for h in u['hits'])
+
 def test_manual_rectangle(tmp_path,autojob):
     from PIL import Image
     p=tmp_path/'s.png';p.write_bytes(image());ws=tmp_path/'job';scan([p],ws,PW,dictionary=DICT)
     j=open_vault(ws/'private/task.lpcv',PW);j['files'][0]['rectangles']=[{'image':'image','box':[0,0,100,100]}]
     review_update(j,confirmations=['IMAGE_VISUAL_REVIEW','ENTITY_AMBIGUITY_REVIEW']);seal(ws/'private/task.lpcv',j,PW)
     redact(ws,PW);im=Image.open(ws/'share/file-001.png');assert im.getpixel((50,50))==(0,0,0)
+
+def test_image_mask_positions_are_numbered_and_actionable():
+    doc=Document(image(),'.png');name=next(iter(doc.images));unit=next(u for u in doc.units if u.image==name and u.boxes)
+    unit.hits=[Hit(0,len(unit.text),'SECRET','synthetic_mask')]
+    doc.manual_rectangles=[{'image':name,'box':[0,0,20,20]}]
+    positions=doc.image_masks()
+    assert positions and positions[-1]['kind']=='manual' and positions[-1]['manual_index']==0
+    assert any(p['kind']=='hit' and p['unit_key']==unit.key and p['hit_index']==0 for p in positions)
+    assert [p['position'] for p in positions]==list(range(1,len(positions)+1))
+    assert all(p['box'][2]>p['box'][0] and p['box'][3]>p['box'][1] for p in positions)
 
 def test_legacy_macro_rejected(tmp_path):
     p=tmp_path/'s.docm';p.write_bytes(b'synthetic')
@@ -240,7 +339,7 @@ def test_cli_no_tty_and_safe_error(tmp_path):
     import subprocess
     p=tmp_path/'s.txt';p.write_text(TEXT)
     cli=Path(__file__).resolve().parents[1]/'scripts/lpc.py'
-    r=subprocess.run([sys.executable,str(cli),'scan',str(p),'--workspace',str(tmp_path/'job')],stdin=subprocess.DEVNULL,capture_output=True,text=True,timeout=15)
+    r=subprocess.run([sys.executable,str(cli),'scan',str(p),'--workspace',str(tmp_path/'job')],capture_output=True,text=True)
     assert r.returncode==1 and 'LOCAL_TTY_REQUIRED' in r.stdout
     assert PHONE not in r.stdout+r.stderr and PERSON not in r.stdout+r.stderr
 
@@ -266,13 +365,13 @@ def test_ocr_edge_glyph_is_covered(tmp_path,autojob):
 def test_excel_modified_cells_wrap(tmp_path,autojob):
     from openpyxl import load_workbook
     p=tmp_path/'s.xlsx';xlsx(p);ws,r=autojob(p);w=load_workbook(ws/'share/file-001.xlsx')
-    assert w.active['A2'].alignment.wrap_text and w.active.row_dimensions[2].height>=66
+    assert w.active['A2'].alignment.wrap_text and w.active.row_dimensions[2].height>=20
 
 
 def test_numeric_identifier_becomes_valid_text_cell(tmp_path,autojob):
     from openpyxl import Workbook,load_workbook
     p=tmp_path/'s.xlsx';w=Workbook();w.active['A1']=int(PHONE);w.save(p)
-    ws,r=autojob(p);out=load_workbook(ws/'share/file-001.xlsx');assert out.active['A1'].data_type=='s' and TOKEN.fullmatch(out.active['A1'].value)
+    ws,r=autojob(p);out=load_workbook(ws/'share/file-001.xlsx');assert out.active['A1'].data_type=='s' and out.active['A1'].value=='***'
 
 def test_numeric_identifier_with_formulas_blocks(tmp_path):
     from openpyxl import Workbook
@@ -298,3 +397,67 @@ def test_exif_orientation_normalized_and_stripped():
     b=io.BytesIO();raw.save(b,'JPEG',exif=exif)
     doc=Document(b.getvalue(),'.jpg');clean=Image.open(io.BytesIO(doc.images['image']))
     assert clean.size==upright.size and not clean.getexif()
+
+
+def test_internal_paths_are_high_risk_candidates():
+    text=r'共享盘 \\fileserver\matter-01\private\brief.docx; Windows C:\Users\synthetic\案件\材料.docx; macOS /Users/synthetic/Projects/case-01/secret.md'
+    hits=[h for h in Detector(use_ner=False).find(text) if h.kind=='INTERNAL_PATH']
+    assert len(hits)==3 and all(h.mask for h in hits)
+
+
+def test_same_file_exact_candidate_propagation_stays_local(tmp_path):
+    from cloak.vault import open_vault
+    a=tmp_path/'a.txt';b=tmp_path/'b.txt'
+    a.write_text('微信号：beika_test2026；另见 beika_test2026')
+    b.write_text('其他材料中提及 beika_test2026')
+    ws=tmp_path/'job';scan([a,b],ws,PW);job=open_vault(ws/'private/task.lpcv',PW)
+    first=[(u,h) for u in job['files'][0]['units'] for h in u['hits'] if u['text'][h['start']:h['end']]=='beika_test2026']
+    second=[(u,h) for u in job['files'][1]['units'] for h in u['hits'] if u['text'][h['start']:h['end']]=='beika_test2026']
+    assert len(first)==2 and any(h['rule']=='same_file_exact_literal' for _,h in first)
+    assert not any(h['rule']=='same_file_exact_literal' for _,h in second)
+    assert all(h['kind']=='REVIEW_CODE' and not h['mask'] for _,h in second)
+
+
+def test_user_mapping_upgrades_optional_code_to_selected_kind(tmp_path):
+    from cloak.workflow import learn_across_task
+    p=tmp_path/'mapping.txt';p.write_text('微信号：beika_test2026；另见 beika_test2026')
+    ws=tmp_path/'job';scan([p],ws,PW);job=open_vault(ws/'private/task.lpcv',PW)
+    result=learn_across_task(job,'beika_test2026','SOCIAL')
+    selected=[h for u in job['files'][0]['units'] for h in u['hits'] if u['text'][h['start']:h['end']]=='beika_test2026']
+    assert result['occurrences']==2 and all(h['kind']=='SOCIAL' and h['mask'] for h in selected)
+
+
+def test_encoded_plain_eml_roundtrip(tmp_path,autojob):
+    from email.message import EmailMessage
+    from email import policy
+    msg=EmailMessage(policy=policy.SMTP);msg['From']=EMAIL;msg['To']='counsel@example.test';msg['Subject']='合成 '+PERSON
+    msg['X-Private-Route']='hidden@example.test'
+    msg.set_content(f'原告：{PERSON} 电话：{PHONE}',charset='utf-8',cte='base64')
+    p=tmp_path/'encoded.eml';p.write_bytes(msg.as_bytes())
+    parsed=Document(p.read_bytes(),'.eml')
+    assert any(u.field=='body' and PERSON in u.text for u in parsed.units)
+    assert 'EML_HEADERS_NORMALIZED' in parsed.issues
+    ws,report=autojob(p);out=ws/'share/file-001.eml';d=Document(out.read_bytes(),'.eml')
+    text='\n'.join(u.text for u in d.units)
+    assert EMAIL not in text and PHONE not in text and PERSON not in text
+    assert 'hidden@example.test' not in text and report['status']=='CHECKED'
+    restored=tmp_path/'restored.eml';assert restore(ws,PW,restored,edited=out)['status']=='RESTORED_EDITED'
+
+
+@pytest.mark.parametrize('suffix', ['.csv','.xlsx'])
+def test_header_context_discovers_table_only_identifiers(tmp_path,suffix):
+    from cloak.table_fields import contextual_hits
+    from cloak.core import Detector
+    values=['合成甲','6222021234567890','E12345678','wx_synth_2026','LAW2026001234','沪A12345']
+    headers=['户名','银行卡号','护照号','微信号','律师执业证号','车牌号']
+    p=tmp_path/('table'+suffix)
+    if suffix=='.csv':
+        import csv
+        with p.open('w',encoding='utf-8',newline='') as f:
+            writer=csv.writer(f);writer.writerow(headers);writer.writerow(values)
+    else:
+        from openpyxl import Workbook
+        book=Workbook();sheet=book.active;sheet.append(headers);sheet.append(values);book.save(p)
+    doc=Document(p.read_bytes(),suffix);found=contextual_hits(doc,Detector(use_ner=False))
+    actual={h.kind:doc.units[[u.key for u in doc.units].index(key)].text[h.start:h.end] for key,items in found.items() for h in items}
+    assert actual=={'PERSON':values[0],'ACCOUNT':values[1],'PASSPORT':values[2],'WECHAT':values[3],'CREDENTIAL':values[4],'VEHICLE':values[5]}

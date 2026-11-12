@@ -4,32 +4,65 @@ import argparse,getpass,json,os,sys
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 from cloak import __version__
-from cloak.platforms import prepare_tools
-prepare_tools()
+from cloak import platform_support as ps
 
-SAFE_CODES = frozenset(['ALL_REGIONS_MUST_BE_REVIEWED', 'ARCHIVE_INTEGRITY_FAILED', 'DICTIONARY_INVALID', 'DICTIONARY_SELECTION_CANCELLED', 'DOCUMENT_SNAPSHOT_MISMATCH', 'DOCUMENT_STRUCTURE_CHANGED', 'DUPLICATE_INPUT', 'EDITED_DOCUMENT_UNSUPPORTED', 'EDITED_RESTORE_UNSUPPORTED', 'ENTITY_KIND_INVALID', 'FILE_INDEX_INVALID', 'FILE_SELECTION_CANCELLED', 'FILE_TOO_LARGE', 'FORMAT_UNSUPPORTED', 'IMAGE_TOO_LARGE', 'JOB_STATE_INVALID', 'KEEP_REQUIRES_REASON', 'LOCAL_NER_UNAVAILABLE', 'LOCAL_REVIEW_INCOMPLETE', 'LOCAL_REVIEW_REQUIRED', 'LOCAL_TOOL_FAILED', 'LOCAL_TOOL_UNAVAILABLE', 'LOCAL_TTY_REQUIRED', 'MACOS_CHOOSER_REQUIRED', 'NO_INPUT', 'OCR_OUTPUT_INVALID', 'OUTPUT_ALREADY_EXISTS', 'OUTPUT_EXTENSION_MISMATCH', 'PACKAGE_DUPLICATE', 'PACKAGE_INVALID', 'PACKAGE_LIMIT', 'PACKAGE_TYPE_MISMATCH', 'PASSPHRASE_MIN_12', 'PASSPHRASE_MISMATCH', 'PDF_ENCRYPTED', 'PDF_PAGE_LIMIT', 'PDF_RENDER_INCOMPLETE', 'POLICY_INVALID', 'RECTANGLE_INVALID', 'REQUEST_INVALID', 'REVIEW_STATE_INVALID', 'SENSITIVE_FORMULA_BLOCKED', 'SENSITIVE_FORMULA_OR_REFERENCE_BLOCKED', 'SOURCE_OVERWRITE_FORBIDDEN', 'SPAN_INVALID', 'SPAN_NOT_FOUND', 'SPAN_OVERLAP', 'UNRESOLVED_STRUCTURAL_BLOCKERS', 'VAULT_INVALID', 'WORKSPACE_NOT_EMPTY', 'XLSX_STYLE_INVALID', 'XML_DTD_FORBIDDEN'])
+SAFE_CODES = frozenset(['ALL_REGIONS_MUST_BE_REVIEWED', 'ARCHIVE_INTEGRITY_FAILED', 'BATCH_LIMIT', 'DICTIONARY_INVALID', 'DICTIONARY_SELECTION_CANCELLED', 'DOCUMENT_SNAPSHOT_MISMATCH', 'DOCUMENT_STRUCTURE_CHANGED', 'DUPLICATE_INPUT', 'EDITED_DOCUMENT_UNSUPPORTED', 'EDITED_RESTORE_UNSUPPORTED', 'ENTITY_KIND_INVALID', 'FILE_INDEX_INVALID', 'FILE_SELECTION_CANCELLED', 'FILE_TOO_LARGE', 'FOLDER_OPEN_FAILED', 'FORMAT_UNSUPPORTED', 'IMAGE_TOO_LARGE', 'JOB_STATE_INVALID', 'KEEP_REQUIRES_REASON', 'LIBREOFFICE_UNAVAILABLE', 'LOCAL_NER_UNAVAILABLE', 'LOCAL_REVIEW_INCOMPLETE', 'LOCAL_REVIEW_REQUIRED', 'LOCAL_TOOL_FAILED', 'LOCAL_TOOL_UNAVAILABLE', 'LOCAL_TTY_REQUIRED', 'MACOS_CHOOSER_REQUIRED', 'NO_INPUT', 'OUTPUT_ALREADY_EXISTS', 'OUTPUT_EXTENSION_MISMATCH', 'PACKAGE_DUPLICATE', 'PACKAGE_INVALID', 'PACKAGE_LIMIT', 'PACKAGE_TYPE_MISMATCH', 'PASSPHRASE_MIN_12', 'PASSPHRASE_MISMATCH', 'PDF_ENCRYPTED', 'PDF_PAGE_LIMIT', 'PDF_RENDER_INCOMPLETE', 'POLICY_INVALID', 'RECTANGLE_INVALID', 'REQUEST_INVALID', 'REVIEW_STATE_INVALID', 'SENSITIVE_FORMULA_BLOCKED', 'SENSITIVE_FORMULA_OR_REFERENCE_BLOCKED', 'SOURCE_OVERWRITE_FORBIDDEN', 'SPAN_INVALID', 'SPAN_NOT_FOUND', 'SPAN_OVERLAP', 'TEXT_ENCODING_UNSUPPORTED', 'UNRESOLVED_STRUCTURAL_BLOCKERS', 'VAULT_INVALID', 'WORKSPACE_NOT_EMPTY', 'XLSX_STYLE_INVALID', 'XML_DTD_FORBIDDEN'])
 
-def emit(value):print(json.dumps(value,ensure_ascii=False,indent=2))
+def emit(value):
+    text=json.dumps(value,ensure_ascii=False,indent=2)+'\n'
+    sys.stdout.write(text);sys.stdout.flush()
 
 def password(new=False):
     # No env var, argument or stdin password: keep secrets out of Agent transcripts and process lists.
-    if not sys.stdin.isatty() or not sys.stderr.isatty():raise ValueError('LOCAL_TTY_REQUIRED')
+    if not sys.stdin.isatty():raise ValueError('LOCAL_TTY_REQUIRED')
     p=getpass.getpass('本地保险库口令（至少12字符，不会显示）: ')
     if len(p)<12:raise ValueError('PASSPHRASE_MIN_12')
     if new and getpass.getpass('再次输入口令: ')!=p:raise ValueError('PASSPHRASE_MISMATCH')
     return p
 
 def doctor():
-    import importlib.util,shutil,subprocess,importlib.metadata as m
+    """Report readiness without touching any document; works on Windows, macOS and Linux."""
+    import importlib.util,importlib.metadata as m
     libs={x:bool(importlib.util.find_spec(x)) for x in ['lxml','cryptography','PIL','pypdf','spacy','zh_core_web_sm']}
-    programs={x:bool(shutil.which(x)) for x in ['tesseract','pdftoppm']}
-    langs=[]
-    if programs['tesseract']:
-        langs=subprocess.run(['tesseract','--list-langs'],capture_output=True,text=True).stdout.splitlines()[1:]
-    ok=all(libs.values()) and all(programs.values()) and {'chi_sim','eng'}.issubset(langs)
-    return {'version':__version__,'status':'READY' if ok else 'DEPENDENCIES_MISSING','libraries':libs,'programs':programs,'ocr_chinese': 'chi_sim' in langs,'ocr_english':'eng' in langs}
+    model=ps.model_status()
+    try:
+        from runtime import allow_rule_only
+        rule_only_allowed=allow_rule_only()
+    except ImportError:
+        rule_only_allowed=ps.rule_only_requested()
+    tools=ps.tool_status()
+    langs=ps.tesseract_languages() if tools['tesseract'] else []
+    ocr_ok=tools['tesseract'] and tools['pdftoppm'] and {'chi_sim','eng'}.issubset(langs)
+    core=all(libs[x] for x in ['lxml','cryptography','PIL','pypdf'])
+    # find_spec alone reports a false READY when the model package is importable but its
+    # tokenizer dependency is missing. Verify by actually loading the pipeline instead.
+    ner_loadable=False
+    if libs['spacy'] and model['model_package']:
+        try:
+            import spacy
+            source=model['model_path'] or 'zh_core_web_sm'
+            nlp=spacy.load(source,disable=['parser','tagger','attribute_ruler','lemmatizer'])
+            ner_loadable=bool(nlp);del nlp
+        except Exception:
+            ner_loadable=False
+    ner='READY' if ner_loadable else ('RULES_ONLY' if rule_only_allowed else 'MISSING')
+    ready=core and ner!='MISSING'
+    warnings=[]
+    if libs['spacy'] and model['model_package'] and not ner_loadable and not rule_only_allowed:
+        warnings.append('中文模型包已安装但无法加载（常见原因：缺少 spacy-pkuseg）；请重新运行 bootstrap.py 补齐依赖。')
+    if ner=='RULES_ONLY':warnings.append('未加载中文实体识别模型，仅使用规则、词典与表格语境；人名、机构名等语义候选可能漏检。')
+    if ner=='MISSING':warnings.append('缺少本地中文实体识别模型；请重新运行 bootstrap.py，或显式接受规则模式。')
+    if not tools['tesseract']:warnings.append('未找到 Tesseract：扫描 PDF、图片和文档内图像不能处理。')
+    elif not {'chi_sim','eng'}.issubset(langs):warnings.append('Tesseract 缺少 chi_sim 或 eng 语言包。')
+    if not tools['pdftoppm']:warnings.append('未找到 Poppler pdftoppm：PDF 不能渲染处理。')
+    paths={name:ps.resolve_tool(name) for name in ('tesseract','pdftoppm','soffice')}
+    return {'version':__version__,'status':'READY' if ready else 'DEPENDENCIES_MISSING','platform':ps.PLATFORM_LABEL,
+      'python':sys.version.split()[0],'ocr_status':'READY' if ocr_ok else 'OPTIONAL_TOOLS_MISSING','libraries':libs,
+      'ner':ner,'ner_loadable':ner_loadable,'rule_only_allowed':rule_only_allowed,'programs':tools,'tool_paths':paths,'ocr_chinese':'chi_sim' in langs,
+      'ocr_english':'eng' in langs,'warnings':warnings}
 
 def main():
+    ps.configure_stdio()
     os.umask(0o077)
     p=argparse.ArgumentParser(description='信息隐身衣：本地法律文件去标识化与加密恢复')
     p.add_argument('--version',action='version',version=__version__)

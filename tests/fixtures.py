@@ -1,6 +1,6 @@
 """All identities and secrets below are synthetic test data, never production credentials."""
+import io,os,sys,zipfile
 from pathlib import Path
-import io,zipfile
 from lxml import etree as E
 from PIL import Image,ImageDraw,ImageFont
 from docx import Document
@@ -15,14 +15,29 @@ PERSON='赵测试';PHONE='13812345678';EMAIL='fixture.person@example.test';ID='1
 TEXT=f'原告：{PERSON}，被告：{ORG}。\n电话：{PHONE}；邮箱：{EMAIL}。\n身份证：{ID}；账号：{ACCOUNT}。\n住址：北京市朝阳区合成路99号。\n项目代号：{SECRET}。\n合同编号：HT-2026-001；案号：（2026）京0105民初123号。\n合同价款为120000元，2026年10月23日履行。北京市朝阳区人民法院受理。\n张某唯一持有73.27%股权的创始人。'
 DICT={'terms':[{'text':PERSON,'kind':'PERSON','entity':'client1'},{'text':ORG,'kind':'ORG','entity':'company1'},{'text':SECRET,'kind':'SECRET','entity':'project1'}]}
 
-def fixture_font():
-    import os
-    choices=[Path('/System/Library/Fonts/Supplemental/Arial.ttf'),Path(os.environ.get('WINDIR','C:/Windows'))/'Fonts/arial.ttf',Path('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf')]
-    return ImageFont.truetype(str(next(p for p in choices if p.is_file())),50)
+def _font_candidates():
+    """Synthetic samples must render on Windows, macOS and Linux alike."""
+    windows=Path(os.environ.get('WINDIR','C:/Windows'))/'Fonts'
+    return {
+        'win32':[windows/'msyh.ttc',windows/'simhei.ttf',windows/'arial.ttf',windows/'segoeui.ttf'],
+        'darwin':[Path('/System/Library/Fonts/Supplemental/Arial.ttf'),Path('/System/Library/Fonts/PingFang.ttc'),Path('/Library/Fonts/Arial.ttf')],
+    }.get(sys.platform,[Path('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'),
+                        Path('/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf'),
+                        Path('/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc')])
+
+def _font(size=50):
+    for candidate in _font_candidates():
+        try:
+            if Path(candidate).is_file():return ImageFont.truetype(str(candidate),size)
+        except OSError:continue
+    return ImageFont.load_default()
+
+def cjk_font_name():
+    return {'win32':'Microsoft YaHei','darwin':'PingFang SC'}.get(sys.platform,'Noto Sans CJK SC')
 
 def image():
     im=Image.new('RGB',(1600,650),'white');d=ImageDraw.Draw(im)
-    font=fixture_font()
+    font=_font(50)
     d.text((65,80),'Synthetic legal exhibit',font=font,fill='black')
     d.text((65,220),f'Phone: {PHONE}',font=font,fill='black')
     d.text((65,360),f'Email: {EMAIL}',font=font,fill='black')
@@ -30,7 +45,7 @@ def image():
     b=io.BytesIO();im.save(b,'PNG');return b.getvalue()
 
 def docx(path,with_image=False):
-    d=Document();s=d.styles['Normal'];s.font.name='PingFang SC';s.font.size=__import__('docx').shared.Pt(11);s._element.rPr.rFonts.set(qn('w:eastAsia'),'PingFang SC')
+    d=Document();s=d.styles['Normal'];s.font.name=cjk_font_name();s.font.size=__import__('docx').shared.Pt(11);s._element.rPr.rFonts.set(qn('w:eastAsia'),cjk_font_name())
     d.add_heading('合成法律文书 · 测试材料',0)
     p=d.add_paragraph('原告：');p.add_run(PERSON[:1]).bold=True;p.add_run(PERSON[1:])
     for line in TEXT.splitlines()[1:]:d.add_paragraph(line)
@@ -71,7 +86,7 @@ def pptx(path,with_image=False):
     slide=p.slides.add_slide(p.slide_layouts[6]);box=slide.shapes.add_textbox(Inches(.5),Inches(.3),Inches(9),Inches(4.5))
     box.text=TEXT
     for para in box.text_frame.paragraphs:
-        for run in para.runs:run.font.name='PingFang SC';run.font.size=Pt(17)
+        for run in para.runs:run.font.name=cjk_font_name();run.font.size=Pt(17)
     slide.notes_slide.notes_text_frame.text='讲者备注 '+PERSON+' '+PHONE
     second=p.slides.add_slide(p.slide_layouts[6]);second._element.set('show','0');second.shapes.add_textbox(Inches(1),Inches(1),Inches(8),Inches(2)).text='隐藏页：'+SECRET
     if with_image:slide.shapes.add_picture(io.BytesIO(image()),Inches(.5),Inches(5),width=Inches(7))

@@ -1,7 +1,12 @@
-tzdata>=2025.1
+# Python packages only. The Chinese spaCy model is a separate, optional step in bootstrap.py
+# so that a blocked GitHub release download cannot abort the whole installation.
 lxml>=5.3,<7
 cryptography>=46,<51
 Pillow>=11,<13
 pypdf>=6,<7
 spacy>=3.8,<3.9
-zh-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/zh_core_web_sm-3.8.0/zh_core_web_sm-3.8.0-py3-none-any.whl
+# zh_core_web_sm declares spacy-pkuseg as a dependency, but bootstrap installs the model
+# wheel with --no-deps. Keeping it here makes the model loadable on macOS and Windows alike.
+spacy-pkuseg>=1.0.0,<2.0.0
+# Windows has no IANA time zone database; zoneinfo needs this package there.
+tzdata>=2024.1

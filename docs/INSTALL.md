@@ -1,152 +1,85 @@
-# 从下载到启动：Windows / macOS安装说明
+# 安装、升级与卸载 · 2.4.2
 
-## 你要先知道的四件事
+制作者：李玥滢（lyyrebecca）。支持 Windows 10/11 与 macOS；Python 3.11/3.12，推荐 3.12。不是自带全部依赖的免安装软件。
 
-1. 程序本体是本地的，不需要脱敏API Key或付费模型账户。使用Agent时，Agent产品本身的要求另算。
-2. 首次安装要联网下载Python依赖和中文模型；日常脱敏可以离线。
-3. 目标为 Windows 11 x64 / macOS＋Python3.12，具体已测范围见[验收记录](VERIFICATION.md)。不要求购买 Office；额外 PPT→PDF 才需本机 LibreOffice。不是 iPhone/iPad 程序，不提供内置全部依赖的免安装 exe。
-4. 不要把真实原文或口令上传聊天来“帮助安装”。软件复核页面仅在本机使用。
+## 下载与目录
 
-## 方法A：下载ZIP
+从[发布页](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/releases/latest)选择 `legal-privacy-cloak-2.4.2.zip`。解压后 `legal-privacy-cloak/` 根部应直接看到 `SKILL.md`、`scripts/`、`assets/`、`references/` 和启动器。
 
-打开[最新Release](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/releases/latest)，下载`becca-offline-file-redaction-skills-v2.0.1.zip`。解压后进入内部的`legal-privacy-cloak`文件夹，其中应能看到`SKILL.md`、`scripts`和`开始使用.md`。
-
-如果需要校验文件：
-
-```bash
-shasum -a 256 becca-offline-file-redaction-skills-v2.0.1.zip
-```
-
-与同一Release的`SHA256SUMS.txt`核对。
-
-## 方法B：克隆仓库
-
-```bash
-git clone https://github.com/lyyrebecca/becca-offline-file-redaction-skills.git
-cd becca-offline-file-redaction-skills
-```
-
-两种方法接下来相同。终端必须位于包含`SKILL.md`的项目文件夹；不要直接运行从其他电脑拷来的.app。
+GitHub 自动生成的 Source code 包是仓库快照，目录名不同；使用命令前须进入实际包含 `SKILL.md` 的目录。源码用户也可克隆本仓库，直接在根目录运行。
 
 ## Windows
 
-### 1. 准备一次性依赖
-
-安装 [Python 3.12](https://www.python.org/downloads/)（Windows installer，勾选 Python Launcher 和 Add Python to PATH）。打开独立 PowerShell，执行 `py -3.12 --version`，应显示 Python 3.12。不要在 AI 管理的终端中输入案件口令。
-
-如果电脑已经安装 [Chocolatey](https://chocolatey.org/install)，可在**管理员 PowerShell**安装系统工具：
+本机安装 Python 3.12（含 `py` 启动器），在技能目录运行：
 
 ```powershell
-choco install tesseract poppler --no-progress -y
+py -3.12 scripts\bootstrap.py
+scripts\run.cmd doctor
 ```
 
-若没有 Chocolatey，可按其官方说明安装，或自行使用 [Tesseract Windows分发说明](https://github.com/UB-Mannheim/tesseract/wiki) 和 [Poppler Windows构建](https://github.com/oschwartz10612/poppler-windows/releases) 安装。Poppler的 `Library\bin`、Tesseract的安装目录应加入用户 PATH。Chocolatey 默认目录会被本程序发现；自定义位置需自行加入 PATH。安装完重新打开 PowerShell。
-
-Tesseract 必须同时有 `eng`、`chi_sim`。运行以下命令确认：
+双击 `信息隐身衣.cmd`。可选快捷方式：
 
 ```powershell
-& 'C:\Program Files\Tesseract-OCR\tesseract.exe' --list-langs
+py -3.12 scripts\install.py --shortcut desktop
+# 或开始菜单
+py -3.12 scripts\install.py --shortcut startmenu
 ```
 
-若缺少 `chi_sim`，可从 [Tesseract官方语言数据](https://github.com/tesseract-ocr/tessdata_fast) 下载 `chi_sim.traineddata`，与已有的 `eng.traineddata` 放到用户目录 `\AppData\Local\legal-privacy-cloak\tessdata`，然后设置用户 `TESSDATA_PREFIX`。以下操作仅下载公开模型，**不上传材料**：
+`--app` 仅用于 macOS，Windows 不使用该参数。没有 `py` 时使用已安装的兼容版本 `python`。
 
-```powershell
-$data = Join-Path $env:LOCALAPPDATA 'legal-privacy-cloak\tessdata'
-New-Item -ItemType Directory -Force $data | Out-Null
-Copy-Item 'C:\Program Files\Tesseract-OCR\tessdata\eng.traineddata' $data
-Invoke-WebRequest 'https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/chi_sim.traineddata' -OutFile "$data\chi_sim.traineddata"
-[Environment]::SetEnvironmentVariable('TESSDATA_PREFIX', $data, 'User')
-$env:TESSDATA_PREFIX = $data
-```
+OCR/PDF 需要 Tesseract 5（`chi_sim`、`eng`）与 Poppler；程序探测常见目录，也可通过 `LPC_TESSERACT`、`LPC_PDFTOPPM` 指定。详见[Windows 说明](../references/windows.md)。
 
-若系统工具安装在自定义位置，请相应修改上述路径。中文模型丢失时程序应报依赖不齐，不能继续当作“已检查”。
+## macOS
 
-### 2. 安装 Skill 和开始菜单入口
-
-解压ZIP后，在 `legal-privacy-cloak` 文件夹的空白处右键“在终端中打开”（或 PowerShell 中 `cd` 到该文件夹），运行：
-
-```powershell
-py -3.12 scripts/install.py --with-deps --app
-& "$HOME\.codex\skills\legal-privacy-cloak\scripts\run.cmd" doctor
-```
-
-看到 `READY` 才表示依赖检查通过。安装器会创建：
-
-- `%LOCALAPPDATA%\legal-privacy-cloak\venv`：本机 Python 运行环境；
-- `%USERPROFILE%\.codex\skills\legal-privacy-cloak`：Skill；
-- 开始菜单 **贝卡文件脱敏**：带用户指定图标的快捷方式。
-
-随后从开始菜单打开，或双击安装目录中的 **启动贝卡文件脱敏.cmd**。弹出的默认浏览器仅连接本机 `127.0.0.1`；不用登录云端账户。Windows启动器保留控制台供报错；请用网页右上“退出”结束服务。不要把 `.command` 或 `.app` 当作 Windows 启动器。
-
-### 3. 可选PPT转PDF和更新
-
-需要额外像素PDF时安装 [LibreOffice](https://www.libreoffice.org/download/download-libreoffice/)；标准 `Program Files\LibreOffice\program\soffice.exe` 或 PATH 位置会被发现。不勾选该选项则不需要它。
-
-更新前退出服务，备份旧 Skill 目录及开始菜单旧快捷方式，再从新包安装。安装器拒绝静默覆盖。不删除 Documents 里的任务、保险库或恢复件。Windows沿用用户配置目录的 ACL；POSIX `0600` 不等于 Windows ACL，勿把私有目录放进公共共享文件夹。
-
-## macOS：首次安装依赖与桌面入口
-
-先按照[Homebrew官方说明](https://brew.sh/)安装Homebrew，然后在自己打开的终端执行：
+安装 Python 3.12 后：
 
 ```bash
-brew install python@3.12 tesseract tesseract-lang poppler
-"$(brew --prefix python@3.12)/bin/python3.12" scripts/install.py --with-deps --app
+python3.12 scripts/bootstrap.py
+chmod +x scripts/run.sh 信息隐身衣.command
+scripts/run.sh doctor
+python3.12 scripts/install.py --app
 ```
 
-它会：
+双击 `.command` 或打开 `~/Applications/信息隐身衣.app`。`.app` 仍依赖技能目录与本机环境；移动源码后需要重新生成。旧应用存在时安装器拒绝覆盖。
 
-- 建立`~/.local/share/legal-privacy-cloak/venv/`本地运行环境；
-- 下载Python依赖和`zh_core_web_sm`中文模型；
-- 检查OCR中文/英文语言包与Poppler；
-- 安装Skill到`~/.codex/skills/legal-privacy-cloak/`；
-- 创建`~/Applications/信息隐身衣.app`；
-- 不修改其他Agent配置，不处理任何案件文件。
-
-安装器拒绝覆盖已有目标。没有出现成功结果时，不要当作已安装；`READY`只表示依赖齐备，不代表文件已脱敏。
-
-检查：
+若已安装 Homebrew，OCR/PDF 可通过以下方式准备：
 
 ```bash
-"$HOME/.codex/skills/legal-privacy-cloak/scripts/run.sh" doctor
-```
-
-## 启动与退出
-
-Finder中按`Command+Shift+G`，输入`~/Applications/`，双击“信息隐身衣.app”。默认浏览器会打开本机`127.0.0.1`工作台。不是云端网站，不需要先登录AI。
-
-也可双击安装目录中的“信息隐身衣.command”，或者：
-
-```bash
-"$HOME/.codex/skills/legal-privacy-cloak/scripts/run.sh" desktop
-```
-
-重复打开应用可唤回正在运行的本地服务。用右上“退出”停止服务；只关浏览器标签页不会退出后台。口令只在本地页面输入。
-
-## 可选：PPT额外生成PDF
-
-```bash
+brew install tesseract tesseract-lang poppler
+# 仅需要 PPTX 转像素 PDF 时安装
 brew install --cask libreoffice
 ```
 
-没有LibreOffice时不要勾选此项；它不是普通PPTX脱敏的必需依赖。PDF扫描件本身的处理使用Poppler和OCR。
+解压权限、Gatekeeper 单文件允许、文稿目录授权及日志排查见[macOS 说明](../references/macos.md)。不需要关闭整机安全设置。
 
-## 更新前先备份
+## 模型下载与规则模式
 
-退出工作台，备份旧Skill目录和旧启动器后再安装新版本。示例只在本机执行：
+Bootstrap 创建版本隔离的用户环境；不读取材料，不在启动时静默安装。中文模型从已安装环境、本地 wheel、自定义地址与官方/备用渠道尝试获取。
 
-```bash
-stamp=$(date +%Y%m%d-%H%M%S)
-mv "$HOME/.codex/skills/legal-privacy-cloak" "$HOME/.codex/skills/legal-privacy-cloak-backup-$stamp"
-# 只有旧app存在时才执行下面一行
-mv "$HOME/Applications/信息隐身衣.app" "$HOME/Applications/信息隐身衣-backup-$stamp.app"
+```text
+scripts/bootstrap.py --reuse-system
+scripts/bootstrap.py --wheel /本机路径/zh_core_web_sm-3.8.0-py3-none-any.whl
+scripts/bootstrap.py --rule-only
 ```
 
-之后从新项目目录运行安装命令。任务和保险库在Documents下，升级不应删除；口令仍由你独立保管。不要让AI读取备份里的真实映射。
+以上参数需加上本机 Python 命令。`--reuse-system` 适合相应 Python 已有模型的情况。`--rule-only` 必须由使用者明确接受，界面持续提示且需额外复核；不能宣称等同模型模式。第三方下载源有自身可用性和信任边界；可自行准备官方 wheel。
 
-## 安装失败时怎么反馈？
+`doctor` 的 `status: READY` 表示核心环境与所选识别模式就绪；`ocr_status: READY` 才说明 OCR/PDF 工具及语言数据齐备。缺少图像依赖时不能将图像当成无敏感内容通过。
 
-仅提供系统版本、Python版本、`doctor`无原文结果、固定错误码和合成复现方法。不要粘贴真实文件内容、含原文的系统异常、口令或环境凭据。模型/程序缺失不会偷偷切换云端服务。
+## Codex 安装
+
+将完整技能目录复制到 `~/.codex/skills/legal-privacy-cloak`（Windows 通常为 `%USERPROFILE%\.codex\skills\legal-privacy-cloak`），或用 `scripts/install.py --target <尚不存在的技能目录>`。依赖未就绪时先 bootstrap。调用 `$legal-privacy-cloak`。
+
+## 升级
+
+- 备份旧技能目录和仍需使用的任务；新版解压到新位置，不覆盖仍在运行的旧会话。
+- 2.4.2 使用自己的运行环境：Mac 为 `~/Library/Application Support/legal-privacy-cloak/2.4.2/`，Windows 为 `%LOCALAPPDATA%\legal-privacy-cloak\2.4.2\`。
+- 不复制旧 venv；使用新版 bootstrap 验证依赖，并重新创建指向新版的启动器。
+- 不承诺任意历史任务或编辑副本可跨版本恢复。历史任务保留原版本与口令；新版用合成副本确认流程后再处理新任务。
+- 默认任务根目录可能复用本机学习库；同口令才载入精确词条，不自动解锁或迁移口令。
 
 ## 卸载
 
-退出服务后，自行删除Skill安装目录、对应.app；需要时再删除本地运行环境。**不要顺手删除Documents中的加密任务、恢复件或原始文件**，这些是否保留由你决定。
+移除 Skill、启动器／快捷方式及对应版本运行目录。任务默认保存在系统“文档”中的 `信息隐身衣任务`；它们不是可随意清理的软件缓存。原件、保险库、学习库和恢复件由用户另行备份或删除。
+
+更多命令、数据位置、恢复与限制见[运行说明](../references/operations.md)。

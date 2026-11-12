@@ -1,51 +1,57 @@
-# Becca Offline File Redaction Skills
+# Legal Privacy Cloak · v2.4.2
 
-Chinese product name: **终极·贝卡的文件脱敏离线部署软件 skills**. Aliases: 信息隐身衣 / Becca File Redaction. Skill invocation: `$legal-privacy-cloak`.
+**Created by 李玥滢 (Li Yueying), [lyyrebecca](https://github.com/lyyrebecca).** An individually created AI-law course project; course submission as a group assignment does not imply joint development.
 
-A local-first document de-identification workflow for legal materials: deterministic rules, Chinese spaCy NER, Tesseract OCR, local human review, conservative matter grouping, document adapters, teaching-slide cleanup, AI-readable Markdown and encrypted restoration.
+A Skill, fixed local engine and browser-based local workbench for Chinese legal-document de-identification. After installing dependencies, daily processing requires no external LLM or API key. Reversible de-identification is not legal anonymization.
 
-**Desktop targets: Windows 11 x64 and macOS with Python 3.12.** Native Windows/macOS CI exercises the core workflow and isolated installation/launchers. macOS additionally has manual browser/Finder acceptance screenshots. This is a Skill plus a fixed local engine and OS-specific launchers, not a self-contained installer. iOS/iPadOS is outside scope. See the verification matrix for exact tested coverage. Runtime dependencies and models must be prepared first; initial setup uses the network. Routine document processing does not call an external LLM API.
+[中文说明](README.md) · [Download](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/releases/latest) · [Installation](docs/INSTALL.md) · [Verification scope](docs/VERIFICATION.md)
 
-## Formats and workflow
+## New since the previous 2.0.1 release
 
-- DOCX: text runs, tables, headers/footers, footnotes, comments, tracked and hidden content.
-- XLSX: cells, hidden sheets, comments, attributes, formula checks; sensitive dependencies block rather than silently breaking calculations.
-- PPTX: text and embedded images; student copies remove speaker notes, comments, hidden slides and unreachable package parts.
-- PDF/scans: render, OCR, pixel masks and raster reconstruction; original searchable text is intentionally not retained.
-- PNG/JPEG: solid pixel masks and metadata-clean re-encoding.
-- UTF-8 TXT/Markdown: consistent placeholders.
+- Select missed text and apply an exact-literal rule across the current batch; affected files must be reviewed again.
+- Right-click to cancel one candidate with confirmation. Additional numeric/alphanumeric candidates are visible-text/OCR-only and unmasked by default.
+- Optional encrypted local exact-term library, loaded by future tasks using the same passphrase; no semantic training or cross-case identity inference.
+- Numbered image masks; jump to automatic candidates or remove/redraw manual rectangles.
+- CSV/TSV, JSON/XML/LOG and restricted plain-text EML support, in addition to Office/PDF/images/UTF-8 text.
+- One case per workbench batch by default; use separate tasks for separate cases.
+- Versioned user runtimes, Windows launchers, native tool discovery, UTF-8 console handling and optional shortcuts.
+- **2.4.2:** delivery blockers are explained per file, with issue codes and navigation back to review. Unknown issues fail closed; soft confirmations cannot bypass structural export gates.
 
-Choose a role and purpose → import → confirm matter assignments → review text and images locally → export and verify → open the delivery folder. Unknown or unsupported content is not reported as passed.
+## Formats and restoration
 
-## Windows setup
+DOCX/XLSX/PPTX, PDF, PNG/JPEG, UTF-8 TXT/Markdown/CSV/TSV/JSON/XML/LOG, and single-part `text/plain` EML. Multipart/HTML/attachment emails are blocked; EML output is a non-sendable `X-LPC-*` review copy. Unsupported formats and structures are blocked rather than silently skipped.
 
-Install Python 3.12, Tesseract (English and Simplified Chinese data) and Poppler. From the project folder run:
+Office displays `***`; edited-copy restoration requires intact markers in the original text units/offsets and other consistency checks. Text formats use full internal placeholders. PDF/images restore original bytes only. AES-256-GCM and scrypt protect originals/mappings in a separate vault.
+
+## Install and run
+
+Python **3.11 or 3.12** required; 3.12 recommended. Download and extract `legal-privacy-cloak-2.4.2.zip`, then enter its `legal-privacy-cloak` directory.
+
+Windows 10/11:
 
 ```powershell
-py -3.12 scripts/install.py --with-deps --app
+py -3.12 scripts\bootstrap.py
+scripts\run.cmd doctor
 ```
 
-Open **贝卡文件脱敏** from the Start Menu, or double-click `启动贝卡文件脱敏.cmd`. The runtime resides in `%LOCALAPPDATA%\legal-privacy-cloak\venv`; the Skill remains under `~/.codex/skills/legal-privacy-cloak`. See the [detailed guide](docs/INSTALL.md#windows).
+Double-click `信息隐身衣.cmd`. Optional shortcut: `py -3.12 scripts\install.py --shortcut desktop`.
 
-## macOS setup
+macOS:
 
 ```bash
-git clone https://github.com/lyyrebecca/becca-offline-file-redaction-skills.git
-cd becca-offline-file-redaction-skills
-brew install python@3.12 tesseract tesseract-lang poppler
-"$(brew --prefix python@3.12)/bin/python3.12" scripts/install.py --with-deps --app
+python3.12 scripts/bootstrap.py
+chmod +x scripts/run.sh 信息隐身衣.command
+scripts/run.sh doctor
 ```
 
-Open `~/Applications/信息隐身衣.app`. Optional raster PDF export from slides requires local LibreOffice. Existing installations are not overwritten automatically. See [installation](docs/INSTALL.md), [Chinese guide](开始使用.md) and [verification evidence](docs/VERIFICATION.md).
+Double-click `信息隐身衣.command`; optionally run `python3.12 scripts/install.py --app`.
 
-## Privacy and limits
+Tesseract with `chi_sim` and `eng`, plus Poppler, are needed for OCR/PDF. LibreOffice is optional for PPT-to-raster-PDF. These tools and model/runtime binaries are not bundled. Bootstrap needs network access or prepared dependencies; explicit `--rule-only` mode does not provide the Chinese model's capabilities.
 
-No automatic upload, cloud OCR fallback or document analysis API. Originals and exact recovery mappings stay in the encrypted local vault. Real source text, passwords and mappings must not be copied into chats or public issues. Public screenshots use synthetic materials only.
+## Workflow and scope
 
-Manual review remains required. No promise of zero misses, legal anonymization, automatic face/QR recognition, semantic case merging, multi-case splitting or pixel-perfect Office layout. Reversible pseudonymization is not legal anonymization. PDF/image recovery returns the original rather than merging external edits.
+Choose purpose → import one case → review every file locally → resolve blockers and export. Only selected `share/` outputs are candidate deliverables; never share the whole task, vault, passphrase or restored originals. `CHECKED` is not a guarantee of zero misses or legal permission to disclose. Faces, signatures, QR codes and indirect identification need human review.
 
-The output page has an explicit **open delivery folder** link plus copy-path fallback. Share only the required contents of `share/`, not the vault or restored files.
+Windows/macOS native CI is tracked in [Actions](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/actions); current verification is documented separately from old 2.0.1 screenshots. Linux code paths do not establish Linux desktop GUI acceptance; no mobile version is provided.
 
-Maintainer: [lyyrebecca](https://github.com/lyyrebecca) · WeChat `shirebeccaha` · `1849883220@qq.com`.
-
-Licensing follows per-component notices, not a blanket MIT grant over dependencies, reference materials and supplied artwork. See [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES.md).
+Credit appears only in the app/docs, not in processed legal documents. Third-party notices and layered licensing remain unchanged: [LICENSE](LICENSE), [THIRD_PARTY_NOTICES](THIRD_PARTY_NOTICES.md). Report synthetic reproductions only, not real case data.

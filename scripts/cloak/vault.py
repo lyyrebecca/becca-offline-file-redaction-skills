@@ -1,8 +1,9 @@
 from __future__ import annotations
-import base64, json, os, struct, tempfile
+import base64, json, os
 from pathlib import Path
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from .platform_support import atomic_write, read_bytes
 MAGIC=b'LPCV1\x00';AAD=b'legal-privacy-cloak/v1'
 
 def derive(password,salt):
@@ -10,15 +11,9 @@ def derive(password,salt):
     return Scrypt(salt=salt,length=32,n=2**15,r=8,p=1).derive(password.encode())
 
 def atomic(path,data):
-    path=Path(path);path.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
-    fd,tmp=tempfile.mkstemp(prefix='.lpc-',dir=path.parent)
-    try:
-        if os.name!='nt':os.fchmod(fd,0o600)
-        # Windows uses the user-profile ACL; POSIX mode bits are not an ACL guarantee.
-        with os.fdopen(fd,'wb') as f:f.write(data);f.flush();os.fsync(f.fileno())
-        os.replace(tmp,path)
-    finally:
-        if os.path.exists(tmp):os.unlink(tmp)
+    # fchmod is POSIX-only; atomic_write centralises POSIX permissions, Windows
+    # replacement semantics and long paths so the vault can be written on every OS.
+    atomic_write(path,data)
 
 def seal(path,obj,password):
     salt=os.urandom(16);nonce=os.urandom(12)
@@ -27,7 +22,7 @@ def seal(path,obj,password):
     atomic(path,MAGIC+salt+nonce+ciphertext)
 
 def open_vault(path,password):
-    raw=Path(path).read_bytes()
+    raw=read_bytes(path)
     if len(raw)<50 or raw[:len(MAGIC)]!=MAGIC:raise ValueError('VAULT_INVALID')
     off=len(MAGIC);salt=raw[off:off+16];nonce=raw[off+16:off+28]
     return json.loads(AESGCM(derive(password,salt)).decrypt(nonce,raw[off+28:],AAD))

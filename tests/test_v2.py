@@ -5,7 +5,7 @@ import pytest
 from cloak.scenarios import scenario_from,suggest_purpose
 from cloak.organize import propose,set_assignments
 from cloak.core import Detector,TOKEN,Hit
-from cloak.formats import Document,_ocr
+from cloak.formats import Document,_ocr,SUPPORTED
 from cloak.workflow import scan,review_update,redact,restore,verify,SOFT_ISSUES,_attach,input_data
 from cloak.vault import open_vault,seal
 from cloak.teaching import student_copy
@@ -15,17 +15,17 @@ PW='SYNTHETIC-v2-password-2026'
 
 @pytest.mark.parametrize('purpose,md,dates',[('ai',True,True),('students',False,True),('public',False,False),('classroom',False,True),('external',False,True)])
 def test_scenarios(purpose,md,dates):
-    s=scenario_from({'purpose':purpose});assert s.export_md==md and s.preserve_dates==dates
-@pytest.mark.parametrize('data',[{'role':'unknown'},{'ppt_pdf':'yes'},{'organization':'guess'},{'unexpected':1}])
+    s=scenario_from({'purpose':purpose});assert s.export_md==md and s.preserve_dates==dates and s.organization=='single'
+@pytest.mark.parametrize('data',[{'role':'unknown'},{'ppt_pdf':'yes'},{'organization':'guess'},{'organization':'multi'},{'unexpected':1}])
 def test_invalid_scenarios(data):
     with pytest.raises(ValueError):scenario_from(data)
 def test_purpose_suggestion():assert suggest_purpose('课件要发给学生')=='students'
 
 def record(text,sha='x',suffix='.txt'):
     return {'units':[{'text':text,'kind':'text'}],'sha256':sha,'suffix':suffix}
-def test_conservative_groups():
+def test_batch_defaults_all_files_to_one_case_without_classifying():
     files=[record('案号：（2026）京0105民初123号','1'),record('合同。案号：（2026）京0105民初123号','2'),record('原告：赵测试','3'),record('案号：（2026）京0105民初123号及（2026）沪0105民初456号','4'),record('法律法规','5')]
-    result=propose(files);assert files[0]['case_id']==files[1]['case_id']=='CASE001';assert files[2]['case_id']==files[3]['case_id']=='PENDING';assert files[4]['case_id']=='COMMON';assert result['pending']==2
+    result=propose(files);assert {f['case_id'] for f in files}=={'CASE001'};assert {f['category'] for f in files}=={'other'};assert result['pending']==0 and result['case_count']==1
 def test_duplicates_retained():
     files=[record('合同编号：AB-001'),record('合同编号：AB-001')];propose(files);assert len(files)==2 and files[1]['duplicate_of']==0
 
@@ -46,16 +46,16 @@ def test_sparse_review_and_md(tmp_path):
     assert '2026年10月23日' in (ws/'share/日期索引.md').read_text();assert verify(ws,PW)['status']=='CHECKED'
     restored=tmp_path/'restored.docx';restore(ws,PW,restored);assert restored.read_bytes()==p.read_bytes()
 
-def test_group_gate_and_identity_scope(tmp_path):
+def test_batch_scan_skips_group_gate_and_shares_one_case_identity(tmp_path):
     paths=[]
     for i in range(3):p=tmp_path/f'{i}.txt';p.write_text('原告：赵测试，电话：'+PHONE);paths.append(p)
     ws=tmp_path/'job';scan(paths,ws,PW,scenario={'purpose':'ai'},dictionary={})
     j=open_vault(ws/'private/task.lpcv',PW)
-    with pytest.raises(ValueError,match='GROUP_REVIEW_REQUIRED'):review_update(j,confirmations=list(SOFT_ISSUES))
-    approve(ws,[{'index':i,'case_id':'CASE001' if i<2 else 'CASE002'} for i in range(3)])
+    assert j['groups_confirmed'] is True and {f['case_id'] for f in j['files']}=={'CASE001'}
+    review_update(j,confirmations=list(SOFT_ISSUES));seal(ws/'private/task.lpcv',j,PW)
     assert redact(ws,PW)['status']=='CHECKED'
     texts=[p.read_text() for p in sorted((ws/'share').rglob('*.txt'))]
-    assert TOKEN.findall(texts[0])==TOKEN.findall(texts[1]) and TOKEN.findall(texts[0])!=TOKEN.findall(texts[2])
+    assert TOKEN.findall(texts[0])==TOKEN.findall(texts[1])==TOKEN.findall(texts[2])
 
 def test_same_name_manual_entities(tmp_path):
     p=tmp_path/'s.txt';p.write_text('原告：赵测试，被告：赵测试。');ws=tmp_path/'job';scan([p],ws,PW,scenario={'organization':'single'})
@@ -103,13 +103,17 @@ def test_desktop_security_and_api(tmp_path,monkeypatch):
         with pytest.raises(urllib.error.HTTPError):post('/reset',{},csrf='wrong')
         with pytest.raises(urllib.error.HTTPError):post('/reset',{},origin='https://evil.test')
         with pytest.raises(urllib.error.HTTPError):client.open(base+'/../scripts/cloak/vault.py')
+        removed=tmp_path/'remove-me.txt';removed.write_text('synthetic removal check');post('/paths',{'paths':[str(removed)]}).read()
+        assert len(json.load(client.open(base+'/state'))['uploads'])==1
+        post('/remove-upload',{'index':0}).read();assert json.load(client.open(base+'/state'))['uploads']==[] and removed.exists()
         p=tmp_path/'synthetic.txt';p.write_text(PHONE);post('/paths',{'paths':[str(p)]}).read();post('/scan',{'scenario':{'organization':'single'},'password':PW,'password_again':PW}).read()
         for _ in range(120):
             s=json.load(client.open(base+'/state'))
             if s['status']!='BUSY':break
             time.sleep(.2)
         assert s['status']=='REVIEW';assert 'password' not in json.dumps(s)
-        post('/groups',{'assignments':[{'index':0,'case_id':'CASE001'}]}).read()
+        assert s['files'][0]['case_id']=='CASE001'
+        with pytest.raises(urllib.error.HTTPError):post('/groups',{'assignments':[{'index':0,'case_id':'CASE002'}]})
         with pytest.raises(urllib.error.HTTPError):post('/export',{'confirmations':list(SOFT_ISSUES)})
         post('/seen',{'fi':0,'confirmed':True}).read();post('/export',{'confirmations':list(SOFT_ISSUES)}).read()
         for _ in range(120):
@@ -120,10 +124,10 @@ def test_desktop_security_and_api(tmp_path,monkeypatch):
         import subprocess
         calls=[]
         with monkeypatch.context() as patch:
-            patch.setattr('cloak.desktop.open_folder',lambda path:calls.append(str(path)))
+            patch.setattr(subprocess,'run',lambda args,**kw:(calls.append(args) or subprocess.CompletedProcess(args,0)))
             post('/open',{'kind':'share'}).read()
-        assert calls==[str(Path(s['workspace'])/'share')]
-        assert s['delivery_path']==str(Path(s['workspace'])/'share')
+        # The opener differs per OS (os.startfile / open / xdg-open); the target must not.
+        assert len(calls)==1 and calls[0][-1]==str(Path(s['workspace'])/'share')
         restored=json.load(post('/restore',{'fi':0}));assert Path(restored['output']).read_text()==PHONE
     finally:result['server'].shutdown();t.join(15)
 
@@ -152,6 +156,14 @@ def test_derived_pending_cannot_become_checked(tmp_path):
 @pytest.mark.parametrize('repetition',range(3))
 def test_office_image_repeat(tmp_path,repetition):
     p=tmp_path/'s.docx';docx(p,True);ws=tmp_path/'job';scan([p],ws,PW,dictionary=DICT,scenario={'organization':'single'});approve(ws);r=redact(ws,PW);assert r['status']=='CHECKED',r['verification']
+
+
+def test_review_preview_dispatch_covers_every_supported_format():
+    js=(Path(__file__).resolve().parents[1]/'assets'/'ui'/'app.js').read_text(encoding='utf-8')
+    dispatcher=next(line for line in js.splitlines() if line.startswith('function unitPreviewMarkup'))
+    assert all(suffix in dispatcher for suffix in SUPPORTED)
+    assert 'xlsxPreviewMarkup' in dispatcher and 'csvPreviewMarkup' in dispatcher
+    assert 'fileIndex=state.files.find' in js and 'function grouping()' not in js
 
 def test_desktop_reactivation_single_use(tmp_path):
     from cloak.desktop import serve,reactivate

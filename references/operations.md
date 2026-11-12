@@ -1,82 +1,116 @@
-# 本地运行、安装与恢复
+# 本地安装、运行、复核与恢复
 
-## 用户最短路径
+本版同时支持 **Windows 10/11**、macOS 和 Linux。三者使用同一套 Python 代码；平台差异集中在 `scripts/cloak/platform_support.py`（文件权限、原子写入、文件管理器、外部工具定位、时区、单实例锁、控制台编码）。Windows 细节见 [Windows 说明](windows.md)，macOS 细节见 [macOS 说明](macos.md)。
 
-本机安装后，在 Finder 双击技能根目录 **信息隐身衣.command**。2.0 会直接打开四步本地工作台；口令在本机页面输入，文件选择在页面完成。也可双击 `~/Applications/信息隐身衣.app`。旧终端向导保留为 `scripts/run.sh wizard`。没有真实原文或口令需要发到聊天里。
+## 1. 放置 Skill
 
-本机已安装的固定入口为 `~/.codex/skills/legal-privacy-cloak/`；实际运行器默认使用 `~/.local/share/legal-privacy-cloak/venv/bin/python`。Windows 使用 `%LOCALAPPDATA%\legal-privacy-cloak\venv\Scripts\python.exe`，启动入口是开始菜单“贝卡文件脱敏”或根目录 `启动贝卡文件脱敏.cmd`。双系统推荐 Python 3.12；完整安装见 [安装说明](../docs/INSTALL.md)，已测范围见 [验收矩阵](../docs/VERIFICATION.md)。Windows 命令示例将 `scripts/run.sh` 换成 `scripts\run.cmd`。
+将完整目录复制到目标 Agent 的 skills 目录，确保 `SKILL.md`、`scripts/`、`assets/`、`references/` 位于该技能目录根部。技能标识为 `legal-privacy-cloak`；若某个 Agent 要求目录名与元数据名称一致，将文件夹重命名为该标识即可。此 Skill 不依赖特定电脑的用户目录、旧 venv、旧系统模型或既有任务目录。
 
-## 依赖安装与离线边界
+## 2. 新电脑首次安装
 
-运行依赖在 `requirements.txt`；`requirements-tested.txt` 记录验收时直接依赖版本。Tesseract、中文/英文语言包、Poppler 的 `pdftoppm` 为外部程序。macOS 可在用户独立终端安装：
+需要 Python 3.11 或 3.12。首次安装 Python 依赖需要联网访问 PyPI；中文 spaCy 模型可另行获取。安装前应由用户明确同意联网。不要把原始法律文件交给安装器，也不要在安装步骤中打开任何材料。
 
-```bash
-brew install tesseract tesseract-lang poppler
-python3.12 scripts/install.py --with-deps --app
+### Windows
+
+在本机“命令提示符”或 PowerShell 中进入技能目录（路径含空格时加引号）：
+
+```bat
+py -3.12 scripts\bootstrap.py
+scripts\run.cmd doctor
 ```
 
-安装器仅在显式 `--with-deps` 时下载Python依赖与模型；平时 `scan/review/redact/verify/restore` 无云回退、无遥测或模型自动下载。处理期间的网络隔离建议使用操作系统/企业控制；本次V2验收在操作系统沙箱阻断IP网络（仅放行LibreOffice必需的Unix IPC），且验证外部IP连接被拒绝；这不等于已替用户配置整机防火墙。
+没有 `py` 启动器时改用 `python scripts\bootstrap.py`。也可以直接双击技能目录的 **信息隐身衣.cmd** 打开工作台（首次会自动提示先安装依赖）。默认运行时位于 `%LOCALAPPDATA%\legal-privacy-cloak\2.4.2\venv\`。
 
-安装器不自动同步其他Agent，不更改Shell配置；目标存在时拒绝覆盖。卸载时只删除技能目录，运行环境可另行删除；不会自动删除用户加密任务。
-
-## 分步操作
-
-以下命令只在**用户独立打开的本机终端**运行。真实口令不可放进命令行；程序使用隐藏输入。路径示例由用户在本机替换，不把真实词典交给模型。
+### macOS / Linux
 
 ```bash
-# skill目录中的运行器；可先切换到技能目录
+python3.12 scripts/bootstrap.py
 scripts/run.sh doctor
-scripts/run.sh scan /本地/合同.docx /本地/材料.xlsx --workspace /本地/新任务目录 --policy ai --dictionary /本地/案件词典.json
-scripts/run.sh review --workspace /本地/新任务目录
-scripts/run.sh redact --workspace /本地/新任务目录
-scripts/run.sh verify --workspace /本地/新任务目录
-
-# 取回原件，index从0开始
-scripts/run.sh restore --workspace /本地/新任务目录 --index 0 --output /本地/恢复/原件.docx
-# 对Office/TXT/MD精确恢复，必须显式给出编辑后的文件
-scripts/run.sh restore --workspace /本地/新任务目录 --index 0 --edited /本地/外部审阅稿.docx --output /本地/恢复/审阅恢复稿.docx
 ```
 
-`scan`要求一个全新/空任务目录。原件快照、绝对路径、完整命中、人工理由、词典和恢复记录只在`private/task.lpcv`中；`scan-report.json`、`audit-report.json`不含这些明文。
+若电脑只有 Python 3.11，使用 `python3.11`。macOS 可用 `信息隐身衣.command` 打开工作台，`python3.12 scripts/install.py --app` 在 `~/Applications/` 创建 `.app`；Windows 可用 `python scripts\install.py --shortcut desktop` 创建桌面快捷方式；Linux 用 `python3.12 scripts/install.py --shortcut` 创建应用菜单项。
 
-口令至少12字符。保险库采用随机16字节salt、scrypt N=32768/r=8/p=1、32字节密钥、AES-256-GCM和随机12字节nonce，格式与AAD绑定。口令遗失无恢复后门；原件应按用户备份策略另行保管。
+`bootstrap.py` 只根据本目录的 `requirements.txt` 创建该版本专用 venv、安装 Python 包、获取中文模型并验证环境，不读取用户文档。不同版本使用独立目录，不会寻找或复制旧电脑上的 venv。
 
-## 本地复核页面
+### 中文模型获取顺序
 
-仅绑定127.0.0.1随机端口，启动时自动打开带一次性引导密钥的本地URL；URL不打印到控制台。会话使用HttpOnly/SameSite=Strict cookie、CSRF字段、Host/Origin检查、CSP、no-store与禁止iframe。旧复核页完成后停止服务；桌面工作台使用右上“退出”停止服务，单独关闭浏览器标签页不会停止后台。
+Windows 上最常见的问题是无法访问 GitHub Releases。程序按以下顺序尝试，任何一步成功即停止：
 
-旧复核页逐区保存；2.0 工作台逐文件确认全部区域。对误识别可以取消遮盖但须填写理由，对漏检可补充原文片段，对图片可拖动添加像素矩形。所有有内容的区域与有命中的属性都需检查；没有命中的结构性标记不要求逐项查看。确认图片、身份歧义及跨文件关系后才能批准；不支持的结构无法用勾选消除。
+1. 当前环境已能 `import zh_core_web_sm`；
+2. 技能目录 `vendor/` 下的 `zh_core_web_sm-3.8.0-py3-none-any.whl`（可用 `--wheel` 指定其他位置）；
+3. 环境变量 `LPC_MODEL_URL`；
+4. `requirements-model.txt` 中的官方地址；
+5. 公共 GitHub 代理镜像（可用性随时间变化，不作为成功保证）。
 
-## 输出、状态及异常
+若本机 Python 已装好 spaCy 3.8 与中文模型，程序会自动改用 `--system-site-packages` 创建环境并**完全跳过下载**；也可显式运行：
 
-- `private/`：加密保险库，权限700/600。不要随脱敏件分享。口令不保存在此目录。
-- 旧任务为`share/file-001.ext`；2.0工作台为`share/案件001/类别/file-001.ext`等：中性文件名的候选工作副本及审计报告，不包含源文件名。
-- `audit-report.json`：任务、策略版本、类别数量、保留数量、位置索引、规则来源和验证结果；不包含敏感原文、映射或原文裸哈希。
-- `verify-report.json`：重新扫描当前输出，输出变更必定回到待复核状态。
-- 恢复结果：写到用户指定的新文件，旁边生成不含原文的恢复报告；不会在模型上下文预览。
+```bat
+py -3.12 scripts\bootstrap.py --reuse-system
+```
 
-退出码：0=本次操作正常完成；2=待复核/冲突；1=失败；130=用户取消。`scan`的2是正常的待复核门槛，不要因此绕过流程。文件解析错误只显示固定代码和异常类型，不回传traceback/原文。
+全部渠道都失败时，程序不会静默降级。用户可选择显式接受规则模式：
 
-残留验证失败：保留待复核状态，根据本地检查补充词典或范围，使用原件在新目录重新扫描；不要手动把报告改成CHECKED。图片OCR误识别也会触发待复核，不能保证所有真实材料一次导出成功。
+```bat
+py -3.12 scripts\bootstrap.py --rule-only
+```
 
-## 备份与限制
+该模式只使用规则、词典与表格语境，不加载中文模型；工作台会持续显示提示，并在复核清单中增加一项必须确认的说明。`doctor` 中 `ner` 显示 `RULES_ONLY`。需要语义识别时应补齐模型，不要把它当作等同能力。
 
-加密保险库与口令分开备份，用户决定保存期限；本版没有自动过期删除、角色权限系统、多人审批、硬件密钥托管或不可篡改企业审计。GCM保护单个保险库完整性，但不能发现整份旧保险库回滚。
+## 3. OCR/PDF 系统工具
 
-本地解密在内存中进行；OCR/PDF临时文件位于权限700临时目录，正常结束会清理。本版不声称防御已控制本机的管理员、内存转储、系统交换分区、异常断电遗留或恶意浏览器扩展。恢复输出与用户选取的原件本身是明文，需由用户本地保管。
+Tesseract、`chi_sim`/`eng` 语言数据、Poppler `pdftoppm` 和（可选的）LibreOffice 不是 Python 包，不会由 bootstrap 静默安装。缺少它们时，纯文本类格式仍可运行；涉及图像、扫描 PDF 或 PPTX 转 PDF 的部分必须停止并明确报告，不静默跳过、不回退云端。
 
-## 开发验收（仅合成样本）
+- Windows：安装 Tesseract 5（勾选 Chinese (Simplified) 语言包）与 Poppler；即使没有加入 PATH，程序也会检查 `C:\Program Files\Tesseract-OCR`、`%LOCALAPPDATA%\Programs\Tesseract-OCR`、`C:\Program Files\poppler\Library\bin` 等常见位置。也可把便携版放进技能目录的 `tools\` 或 `vendor\tools\`，或用环境变量 `LPC_TESSERACT`、`LPC_PDFTOPPM`、`LPC_SOFFICE` 指定完整路径。
+- macOS：`brew install tesseract tesseract-lang poppler`。
+- Linux：`sudo apt install tesseract-ocr tesseract-ocr-chi-sim poppler-utils`。
 
-使用`requirements-test.txt`安装测试依赖后，可运行`python -m pytest tests -q`和`python tests/run_acceptance.py /新的/验收目录`。后一个程序自己生成虚构文件并自动复核，仅为测试而设，不接受真实输入文件。
+`doctor` 的 `status: READY` 表示 Python 依赖与识别模式可用（含显式规则模式）；`ocr_status: READY` 才表示 OCR/PDF 外部工具和语言包齐备。`tool_paths` 会给出程序实际使用的可执行文件位置，便于排查“装了但找不到”。
 
-独立浏览器保护规则允许标准同源Origin；隔离嵌入浏览器的`Origin:null`仅在`Sec-Fetch-Site:same-origin`、有效会话和CSRF均成立时接受，跨站null来源仍拒绝。
+## 4. 常规运行命令
 
-## 2.0补充
+以下命令应由用户在本机独立打开的终端执行。不要让 Agent 在 PTY 中代输真实保险库口令。CLI 的口令仅通过本机 TTY 的隐藏输入取得；禁止放在参数、环境变量或 stdin 管道中。
 
-`desktop`打开工作台；`scan --scenario /本机/场景.json`可使用2.0场景配置，但案件归属需在工作台打开该任务后确认。无scenario参数仍保持旧CLI平铺输出兼容。默认任务位于`~/Documents/信息隐身衣任务/`。
+Windows（命令提示符）：
 
-默认浏览器若有可读页面的扩展，请自行评估并使用可信本机浏览器；软件不控制扩展。界面支持标准文件选择/拖放；自动化扩展没有文件权限时可通过页面的本机路径入口导入，不要求修改浏览器安全设置。
+```bat
+scripts\run.cmd doctor
+scripts\run.cmd scan "C:\材料\起诉状.docx" --workspace "C:\新任务目录" --policy ai
+scripts\run.cmd review --workspace "C:\新任务目录"
+scripts\run.cmd redact --workspace "C:\新任务目录"
+scripts\run.cmd verify --workspace "C:\新任务目录"
+scripts\run.cmd restore --workspace "C:\新任务目录" --index 0 --output "C:\恢复\原件.docx"
+```
 
-应用启动器不携带全部依赖。另一台电脑应先安装依赖，再运行安装器的`--app`创建当地入口；不要把本机的.app当作跨电脑独立安装包。预览缓存有界，退出清空；异常结束临时目录可能遗留，参见前述本机威胁边界。
+PowerShell 使用 `powershell -ExecutionPolicy Bypass -File scripts\run.ps1 doctor`，macOS/Linux 使用 `scripts/run.sh ...`。新电脑首次使用前启动器不会偷偷安装软件；若尚无 venv，会提示先运行 `bootstrap.py`。扫描要求新的空任务目录。工作台的口令字段只在 127.0.0.1 本地会话输入。保险库口令至少 12 个字符；丢失后无恢复后门。
 
-应用可重复打开以唤回当前本机工作台；每个端口使用独立会话cookie。原先的浏览器引导链接不能重复使用；本地启动器使用单独的权限600会话描述文件激活现有服务。退出删除该描述文件。
+## 5. 数据位置与复核要求
+
+默认任务目录：Windows 为“文档”库下的 `信息隐身衣任务\`（OneDrive 重定向时跟随系统“文档”位置），macOS/Linux 为 `~/Documents/信息隐身衣任务/`。`private/` 保存加密任务、原件快照和映射；`share/` 仅含候选脱敏副本和不含敏感原文的报告；`restored/` 是用户明确请求的恢复件。不要分享整个任务目录。用户选取的原件、恢复输出和学习库仍是本机敏感数据。
+
+工作台中的每批默认统一归入一个案件编号，不要求逐文件确认案件/类别；多个案件应分开建任务。每个文件仍必须逐份复核。可拖选文本补漏并按用户确认将同字面项传播到本批；连续数字/编码候选默认不打码，需逐项决定。右键取消单条候选需二次确认，并使相关文件重新复核。图片位置标签可跳转命中或移除手工遮挡。精确学习规则可使用本机任务口令加密保存；未来同口令任务才会载入，不学习语义，也不跨案件推断。
+
+`NEEDS_REVIEW` 表示未完成，不是通过。残留、冲突、不可审阅结构或文件导出后变化均需保留待复核状态。`CHECKED` 只说明本次机械检查和人工复核门槛通过，不是零漏检保证、法律授权或匿名化认证。
+
+交付页会在导出前读取本机后端提供的结构化阻断列表，逐项显示受影响材料、问题代码和处理说明；“返回此材料”直接进入该材料的本机复核页。存在阻断时主操作按钮会返回第一份阻断材料。页面上的三项人工确认只用于软性人工复核，不能覆盖或解除结构性阻断；不存在忽略阻断并继续导出的选项。遇到阻断应按说明在本机制作可完整检查的静态副本，再重新导入；不要尝试绕过检查。未知问题代码也会保留显示，并附通用的失败关闭说明。
+
+## 6. 格式边界
+
+支持白名单包括 DOCX/XLSX/PPTX、PDF、PNG/JPEG、UTF-8 TXT/Markdown、CSV/TSV、JSON/XML、LOG 和受限的单段 `text/plain` EML。EML 可解码 MIME Base64/quoted-printable；多段、HTML 和附件邮件阻断，输出是不可直接发送的 `X-LPC-*` 复核副本。未知格式和不安全结构失败关闭。OCR/PDF 工具缺失时，不允许将文件当成无敏感内容继续。
+
+文本类文件必须是 UTF-8（可带 BOM）。Windows 上用记事本“另存为 ANSI/GBK”的文件会以 `TEXT_ENCODING_UNSUPPORTED` 阻断，程序不猜测编码，也不会把乱码当成无敏感内容。
+
+## 7. 安装器与选项
+
+- `bootstrap.py`：创建/验证本版本用户级运行环境，不复制 Skill，也不处理文件。
+- `bootstrap.py --refresh`：按本目录 `requirements.txt` 重新安装依赖。
+- `bootstrap.py --reuse-system`：复用系统 Python 中已装的 spaCy 与中文模型，网络受限时推荐。
+- `bootstrap.py --rule-only`：显式接受无中文模型的规则模式（复核时需额外确认）。
+- `bootstrap.py --wheel 路径.whl`：从本机 wheel 安装中文模型，可重复。
+- `bootstrap.py --model-url 地址`：自定义模型下载地址，可重复。
+- `bootstrap.py --index-url 地址`：自定义 PyPI 源，可重复；默认在官方源失败后尝试国内镜像。
+- `install.py --with-deps`：执行 bootstrap。
+- `install.py --target <空的Agent技能目录>`：可选复制当前 Skill；目标已存在会拒绝覆盖。
+- `install.py --app`：仅 macOS，在依赖就绪后创建 `.app`；现有应用不会自动覆盖。
+- `install.py --shortcut desktop|startmenu`：Windows 创建 `.lnk` 快捷方式，Linux 创建应用菜单项。
+
+卸载运行环境时仅删除本机 `legal-privacy-cloak/2.4.2/` 软件运行目录；不要误删任务目录中的任务、保险库或恢复文件。备份和删除任务由用户自行决定。

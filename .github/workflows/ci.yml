@@ -26,6 +26,9 @@ jobs:
           cache-dependency-path: |
             requirements.txt
             requirements-test.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - name: Prepare macOS local OCR and PDF dependencies
         if: runner.os == 'macOS'
         run: |
@@ -51,15 +54,18 @@ jobs:
           Invoke-WebRequest 'https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/chi_sim.traineddata' -OutFile "$data\chi_sim.traineddata"
           "TESSDATA_PREFIX=$data" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Install runtime and synthetic test dependencies
-        run: python -m pip install -r requirements.txt -r requirements-test.txt
+        run: python -m pip install -r requirements.txt -r requirements-model.txt -r requirements-test.txt
       - name: Validate release structure and privacy exclusions
         run: |
           python scripts/check_release.py
           python scripts/lpc.py doctor
           node --check assets/ui/app.js
-      - name: Diagnose generated raster and OCR compatibility
+          node tests/test_delivery_ui.js assets/ui/app.js
+      - name: Run synthetic cross-platform smoke tests
+        run: python tests/run_smoke.py
+      - name: Run synthetic multi-format acceptance
         shell: bash
-        run: python scripts/diagnose_ci.py --output "$RUNNER_TEMP/becca-diagnostics"
+        run: python tests/run_acceptance.py "$RUNNER_TEMP/becca-acceptance"
       - name: Run synthetic regression tests
         shell: bash
         run: python -m pytest tests -vv --timeout=120 -o faulthandler_timeout=60 --junitxml="$RUNNER_TEMP/becca-junit.xml"
@@ -70,5 +76,5 @@ jobs:
           name: synthetic-test-results-${{ runner.os }}
           path: |
             ${{ runner.temp }}/becca-junit.xml
-            ${{ runner.temp }}/becca-diagnostics/
+            ${{ runner.temp }}/becca-acceptance/acceptance.json
           if-no-files-found: ignore

@@ -1,0 +1,84 @@
+{
+  "version": "2.4.2",
+  "date": "2026-11-12",
+  "synthetic_only": true,
+  "platform": "macOS arm64",
+  "python": "3.12.14",
+  "pytest": {
+    "passed": 173,
+    "failed": 0,
+    "duration_seconds": 72.26
+  },
+  "node_delivery_ui": "PASS",
+  "smoke": {
+    "passed": 10,
+    "failed": 0,
+    "ner": "READY",
+    "ocr": "READY"
+  },
+  "acceptance": {
+    "synthetic_only": true,
+    "file_count": 8,
+    "status": "CHECKED",
+    "formats": [
+      {
+        "format": ".docx",
+        "original_sha256_match": true,
+        "output_sha256": "0d782724a99594b836ce8a6a05c1202291b6e5d6eef75fdd1dd3e131a7cd5ce6"
+      },
+      {
+        "format": ".jpg",
+        "original_sha256_match": true,
+        "output_sha256": "552778522da3ebf567780b5740e1ecf5382a1d6bf9ccc8a11b2c9629212dec1a"
+      },
+      {
+        "format": ".md",
+        "original_sha256_match": true,
+        "output_sha256": "e6b7b194fd622a7333df30cdff3b82f9346dc43d9a7ed3a55619af9c87e6da4d"
+      },
+      {
+        "format": ".png",
+        "original_sha256_match": true,
+        "output_sha256": "400be25d2cdb2163f27797b7c175aabd148684dd500cbe03f640269bac35cf35"
+      },
+      {
+        "format": ".pptx",
+        "original_sha256_match": true,
+        "output_sha256": "44ca394be5f42db450593d626c433086715ec30297776bb08d2c8221c2f2aa67"
+      },
+      {
+        "format": ".txt",
+        "original_sha256_match": true,
+        "output_sha256": "f943681ee1ef51bc5e85d55b3e9db5cd3a725e16f4ff546c0039ae768103b7ac"
+      },
+      {
+        "format": ".xlsx",
+        "original_sha256_match": true,
+        "output_sha256": "13be759fe9ac6aeb1895dd89ef73aa54f79b62f3cb1529ebc747fe09abbc084b"
+      },
+      {
+        "format": ".pdf",
+        "original_sha256_match": true,
+        "output_sha256": "b141d6a6219b91567093c0b51190e211df92a6f83f93a2a8fb7083a2dcae16f2"
+      }
+    ],
+    "masked_by_category": {
+      "PERSON": 18,
+      "PHONE": 16,
+      "EMAIL": 11,
+      "ID": 4,
+      "ACCOUNT": 7,
+      "ADDRESS": 4,
+      "SECRET": 7,
+      "CONTRACT": 4,
+      "CASE": 4,
+      "QUASI": 4,
+      "ORG": 4
+    }
+  },
+  "scope": {
+    "new_full_gui_acceptance": false,
+    "os_network_denial_in_this_run": false,
+    "windows_native_ci": "see corresponding GitHub Actions run"
+  }
+}

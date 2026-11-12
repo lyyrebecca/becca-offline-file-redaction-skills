@@ -1,16 +1,14 @@
 """Ephemeral loopback-only review. Never route this page, its pixels or source to a cloud Agent."""
 from __future__ import annotations
 import base64, copy, html, io, secrets, threading, urllib.parse, webbrowser
-from http.server import BaseHTTPRequestHandler
-from .localhttp import LocalHTTPServer as HTTPServer
+from http.server import HTTPServer,BaseHTTPRequestHandler
 from pathlib import Path
 from PIL import Image
 from .vault import open_vault,seal,unb64
 from .workflow import review_update,add_manual,publish,stats,SOFT_ISSUES,_attach,input_data
 from .formats import Document
 from .core import LABELS,Hit
-ISSUE_LABELS={'IMAGE_VISUAL_REVIEW':'全部图片、扫描页及遮挡预览（包括签名、人脸、二维码）','CROSS_FILE_IDENTITY_REVIEW':'跨文件身份关系，未自动合并同名主体','ENTITY_AMBIGUITY_REVIEW':'同名主体、别称、间接身份线索与需要保留的法律细节'}
-BLOCK_LABELS={'UNSUPPORTED_EMBEDDED_OR_DYNAMIC_PART':'含暂不支持的嵌入对象、动态数据、自定义内容或签名。请先制作不带这些内容的静态工作副本。','UNSUPPORTED_BINARY_PART':'含暂不支持的二进制或图片格式，不能跳过检查。','DYNAMIC_FIELD_REVIEW':'含可刷新内容的动态域，请先在本机制作静态副本。','EXTERNAL_DEPENDENCY':'文档依赖外部文件或数据源，请先在本机消除外部依赖。','SENSITIVE_FORMULA_BLOCKED':'公式或公式缓存中含敏感内容，需要人工处理，不能直接替换。','SENSITIVE_REFERENCE_BLOCKED':'工作表名、引用名、包路径或命名空间中含敏感内容，直接改名可能破坏文档。','SENSITIVE_NUMERIC_WITH_FORMULAS':'数字身份标识所在的工作簿含公式，需要先确认计算依赖。','UNSUPPORTED_XML_TAIL':'含尚不能完整检查的XML内容。','MULTIFRAME_IMAGE':'图片包含多帧，本版不能只处理第一帧。'}
+from .issues import STRUCTURAL_BLOCKER_MESSAGES as BLOCK_LABELS, SOFT_ISSUE_MESSAGES as ISSUE_LABELS
 
 def serve(workspace,password,port=0,open_browser=True,ready=None):
     ws=Path(workspace).resolve();vp=ws/'private'/'task.lpcv';job=open_vault(vp,password)

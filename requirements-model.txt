@@ -1,0 +1,4 @@
+# Chinese entity-recognition model. Installed separately by scripts/bootstrap.py.
+# Order of attempts: already installed -> vendor/*.whl -> LPC_MODEL_URL -> this URL
+# -> public GitHub proxies. Use --wheel to install a locally downloaded copy.
+https://github.com/explosion/spacy-models/releases/download/zh_core_web_sm-3.8.0/zh_core_web_sm-3.8.0-py3-none-any.whl

@@ -10,7 +10,7 @@ class Scenario:
     role:str='other'
     purpose:str='ai'
     recipient:str='cloud_ai'
-    organization:str='auto'
+    organization:str='single'
     export_md:bool=True
     ppt_pdf:bool=False
     preserve_dates:bool=True
@@ -31,7 +31,7 @@ def scenario_from(data=None):
     for name in ['export_md','ppt_pdf','preserve_dates','preserve_amounts']:
         if name in data and type(data[name]) is not bool:raise ValueError('SCENARIO_INVALID')
     s=Scenario(**(defaults|data))
-    if s.role not in ROLES or s.purpose not in PURPOSES or s.recipient not in RECIPIENTS or s.organization not in ('auto','single','multi'):raise ValueError('SCENARIO_INVALID')
+    if s.role not in ROLES or s.purpose not in PURPOSES or s.recipient not in RECIPIENTS or s.organization!='single':raise ValueError('SCENARIO_INVALID')
     if not isinstance(s.custom_context,str) or len(s.custom_context)>3000:raise ValueError('SCENARIO_INVALID')
     return s
 

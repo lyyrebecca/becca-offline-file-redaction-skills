@@ -2,6 +2,7 @@
 import re,tempfile,subprocess
 from pathlib import Path
 from .core import apply_spans
+from .platform_support import resolve_tool
 
 def markdown(doc,replacer,index):
     rows=[f'# 材料 {index+1:03d}', '', '> 辅助读取副本；不代替原版式文档。修订、隐藏及 OCR 内容不视为确认事实。', '']
@@ -32,13 +33,17 @@ def index_files(job,pending):
     return {'材料与来源索引.md':('\n'.join(rows)+'\n').encode(),'日期索引.md':('\n'.join(dates)+'\n').encode()}
 
 def ppt_pdf(data):
-    from .platforms import libreoffice
-    exe=libreoffice()
-    if exe is None:raise ValueError('LIBREOFFICE_UNAVAILABLE')
+    # LibreOffice is not on PATH on Windows or macOS by default; resolve_tool knows the
+    # standard install locations and an optional portable copy under the skill folder.
+    found=resolve_tool('soffice')
+    exe=Path(found) if found else None
+    if not exe:raise ValueError('LIBREOFFICE_UNAVAILABLE')
     with tempfile.TemporaryDirectory(prefix='lpc-slides-') as tmp:
         root=Path(tmp);p=root/'material.pptx';p.write_bytes(data)
         command=[str(exe),'-env:UserInstallation='+ (root/'profile').as_uri(),'--headless','--convert-to','pdf','--outdir',str(root),str(p)]
-        try:r=subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=180)
+        try:r=subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,
+                             stdin=subprocess.DEVNULL,timeout=300,
+                             creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
         except (OSError,subprocess.TimeoutExpired):raise ValueError('PDF_EXPORT_FAILED') from None
         target=root/'material.pdf'
         if r.returncode or not target.exists():raise ValueError('PDF_EXPORT_FAILED')
@@ -55,9 +60,9 @@ def verify_markdown(data,detector,kept,masked):
     from .formats import Document,Unit
     rules=Detector(detector.policy,detector.dictionary,use_ner=False)
     rules.preserve_dates=detector.preserve_dates;rules.preserve_amounts=detector.preserve_amounts
-    full=verify_data(data,'.md',rules,kept,masked)
+    full=verify_data(data,'.md',rules,kept,masked,ignore_optional_codes=True)
     blocks=re.findall(r'^(`{3,})text\n(.*?)^\1$',data.decode('utf-8'),re.M|re.S)
     doc=Document(data,'.md');doc.units=[Unit(f'md{i:06d}',text.rstrip('\n')) for i,(fence,text) in enumerate(blocks)]
-    semantic=verify_data(data,'.md',detector,kept,masked,doc)
+    semantic=verify_data(data,'.md',detector,kept,masked,doc,ignore_optional_codes=True)
     residual=full['residuals']+semantic['residuals'];blockers=full['blockers']+semantic['blockers']
     return {'status':'CHECKED' if not residual and not blockers else 'NEEDS_REVIEW','residual_count':len(residual),'residuals':residual,'blockers':blockers}

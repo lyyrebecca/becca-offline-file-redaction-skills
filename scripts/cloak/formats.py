@@ -1,5 +1,5 @@
 from __future__ import annotations
-import csv, io, re, subprocess, tempfile, zipfile
+import csv, io, re, tempfile, zipfile
 import copy,math
 from functools import lru_cache
 from pathlib import Path, PurePosixPath
@@ -8,11 +8,12 @@ from lxml import etree as ET
 from PIL import Image, ImageDraw,ImageOps
 from pypdf import PdfReader
 from .core import Hit,apply_spans
+from .platform_support import resolve_tool, run_tool
 
 W='http://schemas.openxmlformats.org/wordprocessingml/2006/main'
 A='http://schemas.openxmlformats.org/drawingml/2006/main'
 S='http://schemas.openxmlformats.org/spreadsheetml/2006/main'
-SUPPORTED={'.docx','.xlsx','.pptx','.pdf','.png','.jpg','.jpeg','.txt','.md'}
+SUPPORTED={'.docx','.xlsx','.pptx','.pdf','.png','.jpg','.jpeg','.txt','.md','.csv','.tsv','.eml','.json','.xml','.log'}
 MAX_FILE=100*1024*1024;MAX_EXPANDED=300*1024*1024
 PARSER=ET.XMLParser(resolve_entities=False,no_network=True,remove_blank_text=False,huge_tree=False)
 
@@ -27,14 +28,14 @@ class Unit:
     image:str=''
     hits:list=field(default_factory=list)
     source_ref:str=''
+    preview_cells:list=field(default_factory=list)
+    field:str=''
 
 
 def run(cmd):
-    try:
-        r=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=180,check=False)
-    except (OSError,subprocess.TimeoutExpired):raise ValueError('LOCAL_TOOL_UNAVAILABLE') from None
-    if r.returncode:raise ValueError('LOCAL_TOOL_FAILED')
-    return r.stdout
+    if not cmd:raise ValueError('LOCAL_TOOL_UNAVAILABLE')
+    # run_tool hides the console window that Windows would otherwise flash for each call.
+    return run_tool(cmd)
 
 
 def ocr(data):
@@ -43,14 +44,13 @@ def ocr(data):
 @lru_cache(maxsize=8)
 def _ocr(data):
     # Run with a private temp directory; stdout is parsed internally, never forwarded to an Agent.
+    tesseract=resolve_tool('tesseract')
+    if not tesseract:raise ValueError('LOCAL_TOOL_UNAVAILABLE')
     with tempfile.TemporaryDirectory(prefix='lpc-ocr-') as td:
         p=Path(td)/'image.png';p.write_bytes(data)
-        raw=run(['tesseract',str(p),'stdout','-l','chi_sim+eng','--psm','11','-c','tessedit_create_tsv=1']).decode('utf-8-sig')
-    reader=csv.DictReader(io.StringIO(raw),delimiter='\t',quoting=csv.QUOTE_NONE)
-    required={'level','text','left','top','width','height','conf','page_num','block_num','par_num','line_num'}
-    if not required.issubset(reader.fieldnames or []):raise ValueError('OCR_OUTPUT_INVALID')
+        raw=run([tesseract,str(p),'stdout','-l','chi_sim+eng','--psm','11','tsv']).decode('utf-8')
     groups={}
-    for row in reader:
+    for row in csv.DictReader(io.StringIO(raw),delimiter='\t',quoting=csv.QUOTE_NONE):
         if row.get('level')!='5' or not row.get('text','').strip():continue
         key=tuple(row.get(x) for x in ['page_num','block_num','par_num','line_num'])
         groups.setdefault(key,[]).append(row)
@@ -95,15 +95,64 @@ def change_nodes(unit,new):
 class Document:
     def __init__(self,data,suffix):
         if len(data)>MAX_FILE:raise ValueError('FILE_TOO_LARGE')
-        self.data=data;self.suffix=suffix.lower();self.units=[];self.issues=[];self.images={};self.roots={};self.parts={};self.pages=[];self.manual_rectangles=[]
+        self.data=data;self.suffix=suffix.lower();self.text_bom=data.startswith(b'\xef\xbb\xbf');self.units=[];self.issues=[];self.images={};self.roots={};self.parts={};self.pages=[];self.manual_rectangles=[]
         if self.suffix not in SUPPORTED:raise ValueError('FORMAT_UNSUPPORTED')
-        if self.suffix in ('.txt','.md'):
-            self.units=[Unit('text',data.decode('utf-8-sig'))]
+        if self.suffix=='.eml':
+            from email import policy
+            from email.header import decode_header,make_header
+            from email.parser import BytesParser
+            try:message=BytesParser(policy=policy.default).parsebytes(data)
+            except Exception:raise ValueError('EML_INVALID') from None
+            if message.is_multipart() or message.get_content_type()!='text/plain' or message.get_filename() or message.get_content_disposition()=='attachment':raise ValueError('EML_COMPLEX_MIME_BLOCKED')
+            if message.defects:raise ValueError('EML_INVALID')
+            try:body=message.get_content()
+            except Exception:raise ValueError('EML_CHARSET_UNSUPPORTED') from None
+            if not isinstance(body,str) or '\x00' in body:raise ValueError('EML_INVALID')
+            address_headers=('From','To','Cc','Bcc','Reply-To','Sender')
+            text_headers=('Subject','Date','Message-ID','In-Reply-To','References')
+            raw_headers={}
+            for name,value in message.raw_items():raw_headers.setdefault(name.lower(),[]).append(value)
+            for name in address_headers+text_headers:
+                candidates=[]
+                for original_name in (name,'X-LPC-'+name):
+                    parsed=message.get_all(original_name,[]);raw_values=raw_headers.get(original_name.lower(),[])
+                    if len(parsed)!=len(raw_values):raise ValueError('EML_INVALID_HEADER')
+                    for value,raw_value in zip(parsed,raw_values):
+                        generated_token=bool(re.search(r'\[P:[a-f0-9]{12}:[A-Z_]+:\d{3,}\]',raw_value))
+                        try:value_text=str(make_header(decode_header(raw_value))) if original_name.lower().startswith('x-lpc-') else str(value)
+                        except Exception:raise ValueError('EML_INVALID_HEADER') from None
+                        if getattr(value,'defects',()) and not generated_token:raise ValueError('EML_INVALID_HEADER')
+                        if any(ord(ch)<32 and ch not in '\t ' for ch in value_text):raise ValueError('EML_INVALID_HEADER')
+                        candidates.append(value_text)
+                for index,value_text in enumerate(candidates):self.units.append(Unit(f'header-{name}-{index}',value_text,'text',field=name))
+            self.units.append(Unit('body',body,'text',field='body'))
+            allowed={x.lower() for x in address_headers+text_headers+('MIME-Version','Content-Type','Content-Transfer-Encoding')}
+            allowed|={('x-lpc-'+x.lower()) for x in address_headers+text_headers}
+            if any(name.lower() not in allowed for name,_ in message.raw_items()):self.issues.append('EML_HEADERS_NORMALIZED')
+        elif self.suffix in ('.txt','.md','.csv','.tsv','.json','.xml','.log'):
+            try:text=data.decode('utf-8-sig')
+            except UnicodeDecodeError:
+                # GBK/ANSI files are common on Windows; refuse instead of guessing an encoding.
+                raise ValueError('TEXT_ENCODING_UNSUPPORTED') from None
+            if self.suffix in ('.csv','.tsv'):
+                try:list(csv.reader(io.StringIO(text,newline=''),delimiter='\t' if self.suffix=='.tsv' else ','))
+                except csv.Error:raise ValueError('CSV_INVALID') from None
+            if self.suffix=='.json':
+                import json
+                try:json.loads(text)
+                except (ValueError,UnicodeError):raise ValueError('JSON_INVALID') from None
+            elif self.suffix=='.xml':
+                try:root=ET.fromstring(data,PARSER)
+                except ET.XMLSyntaxError:raise ValueError('XML_INVALID') from None
+                if root.getroottree().docinfo.doctype:raise ValueError('XML_DTD_FORBIDDEN')
+            self.units=[Unit('text',text)]
         elif self.suffix in ('.docx','.xlsx','.pptx'):self.office()
         elif self.suffix=='.pdf':self.pdf()
         else:self.add_image('image',data)
         for i,u in enumerate(self.units):
             u.source_ref=u.image or u.key
+            if u.field:
+                u.source_ref='邮件正文' if u.field=='body' else f'邮件头：{u.field}'
             if u.nodes:
                 node=u.nodes[0];anc=[node]+list(node.iterancestors())
                 cell=next((a for a in anc if a.tag=='{'+S+'}c'),None)
@@ -127,9 +176,11 @@ class Document:
         if reader.is_encrypted:raise ValueError('PDF_ENCRYPTED')
         if len(reader.pages)>60:raise ValueError('PDF_PAGE_LIMIT')
         # Render annotations too. Rebuilt output contains pixels only, no original PDF objects.
+        pdftoppm=resolve_tool('pdftoppm')
+        if not pdftoppm:raise ValueError('LOCAL_TOOL_UNAVAILABLE')
         with tempfile.TemporaryDirectory(prefix='lpc-pdf-') as td:
             p=Path(td)/'source.pdf';p.write_bytes(self.data)
-            run(['pdftoppm','-r','180','-png',str(p),str(Path(td)/'page')])
+            run([pdftoppm,'-r','180','-png',str(p),str(Path(td)/'page')])
             pages=sorted(Path(td).glob('page-*.png'),key=lambda p:int(p.stem.split('-')[-1]))
             if len(pages)!=len(reader.pages):raise ValueError('PDF_RENDER_INCOMPLETE')
             for i,p in enumerate(pages):
@@ -245,30 +296,97 @@ class Document:
                 if e.tail and e.tail.strip():self.issues.append('UNSUPPORTED_XML_TAIL')
             for e in root.xpath('//comment()|//processing-instruction()'):
                 if e.getparent() is not None:e.getparent().remove(e)
+        if self.suffix=='.xlsx':self.prepare_xlsx_preview()
         self.issues=sorted(set(self.issues))
 
-    def render_images(self,replacer):
-        output={}
+    def prepare_xlsx_preview(self):
+        """Attach stable sheet/cell locations for a local review grid; never expose raw sheet names as trusted markup."""
+        import posixpath
+        workbook=self.roots.get('xl/workbook.xml');rels=self.roots.get('xl/_rels/workbook.xml.rels')
+        if workbook is None or rels is None:return
+        relmap={e.get('Id'):e.get('Target','') for e in rels if ET.QName(e).localname=='Relationship'}
+        relns='http://schemas.openxmlformats.org/officeDocument/2006/relationships';sheets={}
+        for index,sheet in enumerate(workbook.iter('{'+S+'}sheet')):
+            target=relmap.get(sheet.get('{'+relns+'}id'),'')
+            if not target:continue
+            path=target.lstrip('/') if target.startswith('/') else posixpath.normpath(posixpath.join('xl',target))
+            sheets[path]={'sheet':index+1,'hidden':sheet.get('state') in ('hidden','veryHidden')}
+        shared_root=self.roots.get('xl/sharedStrings.xml');shared=list(shared_root) if shared_root is not None else []
+        refs={}
+        for path,info in sheets.items():
+            root=self.roots.get(path)
+            if root is None:continue
+            for cell in root.iter('{'+S+'}c'):
+                if cell.get('t')!='s':continue
+                value=cell.find('{'+S+'}v')
+                if value is None or not value.text:continue
+                try:index=int(value.text)
+                except ValueError:continue
+                row=cell.getparent();hidden=info['hidden'] or bool(row is not None and row.get('hidden') in ('1','true'))
+                refs.setdefault(index,[]).append({'sheet':info['sheet'],'cell':cell.get('r',''),'hidden':hidden})
+        for unit in self.units:
+            if unit.key=='xl/sharedStrings.xml' and shared:
+                si=next((a for node in unit.nodes for a in node.iterancestors() if a.tag=='{'+S+'}si'),None)
+                if si is not None:unit.preview_cells=refs.get(shared.index(si),[])
+            elif unit.key in sheets:
+                cell_node=next((a for node in unit.nodes for a in [node]+list(node.iterancestors()) if a.tag=='{'+S+'}c'),None)
+                cell=cell_node.get('r','') if cell_node is not None else ''
+                if re.fullmatch(r'[A-Z]{1,3}[1-9]\d*',cell):
+                    row=cell_node.getparent();hidden=sheets[unit.key]['hidden'] or bool(row is not None and row.get('hidden') in ('1','true'))
+                    unit.preview_cells=[{'sheet':sheets[unit.key]['sheet'],'cell':cell,'hidden':hidden}]
+
+    def image_masks(self):
+        """Return numbered mask rectangles for local preview labels and delete/jump actions."""
+        positions=[];number=0
         for name,data in self.images.items():
-            im=Image.open(io.BytesIO(data)).convert('RGB');draw=ImageDraw.Draw(im)
+            im=Image.open(io.BytesIO(data));width,height=im.size
             for u in self.units:
                 if u.image!=name:continue
-                for hit in u.hits:
+                for hi,hit in enumerate(u.hits):
                     if not hit.mask:continue
                     for a,b,x,y,r,bot,conf in u.boxes:
                         if hit.start<b and hit.end>a:
-                            # Some OCR engines infer an edge glyph outside the reported word box.
-                            # Expand horizontally by ~1.4 character widths, not just a cosmetic border.
                             pad=max(4,min(80,math.ceil((r-x)/max(1,b-a)*1.4)))
-                            draw.rectangle((max(0,x-pad),max(0,y-4),min(im.width,r+pad),min(im.height,bot+4)),fill='black')
-            for rect in self.manual_rectangles:
-                if rect['image']==name:draw.rectangle(tuple(rect['box']),fill='black')
+                            number+=1;positions.append({'position':number,'image':name,'box':[max(0,x-pad),max(0,y-4),min(width,r+pad),min(height,bot+4)],'kind':'hit','unit_key':u.key,'hit_index':hi})
+            for ri,rect in enumerate(self.manual_rectangles):
+                if rect['image']==name:
+                    number+=1;positions.append({'position':number,'image':name,'box':list(rect['box']),'kind':'manual','manual_index':ri})
+        return positions
+
+    def render_images(self,replacer):
+        output={}
+        masks=self.image_masks()
+        for name,data in self.images.items():
+            im=Image.open(io.BytesIO(data)).convert('RGB');draw=ImageDraw.Draw(im)
+            for position in masks:
+                if position['image']==name:draw.rectangle(tuple(position['box']),fill='black')
             b=io.BytesIO();im.save(b,'JPEG' if name.lower().endswith(('.jpg','.jpeg')) else 'PNG');output[name]=b.getvalue()
         return output
 
     def output(self,replacer):
-        if self.suffix in ('.txt','.md'):
-            return apply_spans(self.units[0].text,self.units[0].hits,lambda h:replacer(self.units[0],h)).encode('utf-8')
+        if self.suffix=='.eml':
+            from email.message import EmailMessage
+            from email import policy
+            message=EmailMessage(policy=policy.SMTP)
+            body=''
+            for u in self.units:
+                value=apply_spans(u.text,u.hits,lambda h:replacer(u,h))
+                if u.field=='body':body=value
+                elif u.field:message['X-LPC-'+u.field]=value
+            message.set_content(body,subtype='plain',charset='utf-8')
+            return message.as_bytes()
+        if self.suffix in ('.txt','.md','.csv','.tsv','.eml','.json','.xml','.log'):
+            raw=apply_spans(self.units[0].text,self.units[0].hits,lambda h:replacer(self.units[0],h)).encode('utf-8')
+            if self.suffix in ('.csv','.tsv') and self.text_bom:raw=b'\xef\xbb\xbf'+raw
+            if self.suffix=='.json':
+                import json
+                try:json.loads(raw)
+                except ValueError:raise ValueError('JSON_OUTPUT_INVALID') from None
+            elif self.suffix=='.xml':
+                try:root=ET.fromstring(raw,PARSER)
+                except ET.XMLSyntaxError:raise ValueError('XML_OUTPUT_INVALID') from None
+                if root.getroottree().docinfo.doctype:raise ValueError('XML_DTD_FORBIDDEN')
+            return raw
         images=self.render_images(replacer)
         if self.suffix=='.pdf':
             pages=[Image.open(io.BytesIO(images[n])).convert('RGB') for n in self.pages]
@@ -311,7 +429,7 @@ class Document:
                 vv=cell.find('{'+S+'}v')
                 if cell.get('t')=='s' and vv is not None and vv.text and int(vv.text) in shared:touched.add(cell)
                 if cell not in touched:continue
-                if cell.get('t') in (None,'n') and vv is not None and vv.text and '[P:' in vv.text:
+                if cell.get('t') in (None,'n') and vv is not None and vv.text and ('[P:' in vv.text or re.fullmatch(r'\*{3,}',vv.text)):
                     if cell.find('{'+S+'}f') is not None:raise ValueError('SENSITIVE_FORMULA_BLOCKED')
                     value=vv.text;cell.remove(vv);cell.set('t','inlineStr')
                     inline=ET.SubElement(cell,'{'+S+'}is');ET.SubElement(inline,'{'+S+'}t').text=value

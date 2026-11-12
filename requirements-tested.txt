@@ -1,8 +1,9 @@
-# Direct dependencies observed in acceptance environment; not a transitive lockfile.
+# Direct dependencies observed in the acceptance environment; not a transitive lockfile.
 lxml==6.1.1
 cryptography==50.0.2
 pillow==12.3.0
 pypdf==6.10.0
-spacy==3.8.16
+spacy==3.8.18
 spacy-pkuseg==1.0.1
 zh-core-web-sm==3.8.0
+tzdata==2025.2
