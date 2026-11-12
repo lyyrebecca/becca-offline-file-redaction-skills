@@ -121,10 +121,10 @@ def test_desktop_security_and_api(tmp_path,monkeypatch):
             if s['status']!='BUSY':break
             time.sleep(.2)
         assert s['status']=='DONE' and s['result']['verification']=='CHECKED'
-        from cloak import platform_support as ps
+        from cloak import desktop
         calls=[]
         with monkeypatch.context() as patch:
-            patch.setattr(ps,'open_folder',lambda path:calls.append(str(path)))
+            patch.setattr(desktop,'open_folder',lambda path:calls.append(str(path)))
             post('/open',{'kind':'share'}).read()
         # This API test verifies the exact folder passed to the platform adapter.
         # Native startfile/open/xdg-open behaviour has separate platform tests.
