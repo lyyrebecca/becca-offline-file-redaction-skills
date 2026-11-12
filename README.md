@@ -5,7 +5,7 @@
 
 **让法律材料有序流转，让真实身份留在本机。**
 
-**v2.4.2 · Windows / macOS · 制作者：李玥滢（lyyrebecca）**
+**v2.4.2 · Windows / macOS · 制作者：lyyrebecca**
 
 [![CI](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/actions/workflows/ci.yml/badge.svg)](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/lyyrebecca/becca-offline-file-redaction-skills)](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/releases/latest)
@@ -137,7 +137,7 @@ $legal-privacy-cloak
 
 单批最多 100 个文件、合计 250 MB；单文件 100 MB，PDF 60 页，Office 展开 300 MB，图片 3500 万像素。无法完整检查时阻断。不承诺任意文件完全保真、自动识别全部敏感信息、自动人脸识别、语义并案、自动拆案或整机 DLP。
 
-**制作者：李玥滢（lyyrebecca）** · [GitHub](https://github.com/lyyrebecca) · 微信 **shirebeccaha** · 邮箱 **1849883220@qq.com**
+**制作者：lyyrebecca** · [GitHub](https://github.com/lyyrebecca) · 微信 **shirebeccaha** · 邮箱 **1849883220@qq.com**
 
 署名只展示于软件与说明，不写入法律材料或交付副本。[Issue](https://github.com/lyyrebecca/becca-offline-file-redaction-skills/issues)仅提交版本、错误码及合成复现，不上传真实案件、口令或保险库。
 
