@@ -61,6 +61,8 @@ jobs:
           python scripts/lpc.py doctor
           node --check assets/ui/app.js
           node tests/test_delivery_ui.js assets/ui/app.js
+      - name: Build public source Skill archive
+        run: python scripts/build_release.py --output "${{ runner.temp }}/becca-package"
       - name: Run synthetic cross-platform smoke tests
         run: python tests/run_smoke.py
       - name: Run synthetic multi-format acceptance

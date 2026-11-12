@@ -5,9 +5,11 @@
   "platform": "macOS arm64",
   "python": "3.12.14",
   "pytest": {
-    "passed": 173,
+    "passed": 180,
     "failed": 0,
-    "duration_seconds": 72.26
+    "duration_seconds": 70.21,
+    "upstream_tests": 173,
+    "retained_integration_regressions": 7
   },
   "node_delivery_ui": "PASS",
   "smoke": {

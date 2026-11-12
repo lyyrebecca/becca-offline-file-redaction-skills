@@ -2,7 +2,8 @@
 from __future__ import annotations
 import json,secrets,threading,urllib.parse,webbrowser,tempfile,os,io,sys
 from pathlib import Path
-from http.server import ThreadingHTTPServer,BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler
+from .localhttp import LocalThreadingHTTPServer as ThreadingHTTPServer
 from PIL import Image
 from . import workflow as w
 from .formats import Document,ocr,_ocr

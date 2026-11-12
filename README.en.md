@@ -1,6 +1,6 @@
 # Legal Privacy Cloak · v2.4.2
 
-**Created by 李玥滢 (Li Yueying), [lyyrebecca](https://github.com/lyyrebecca).** An individually created AI-law course project; course submission as a group assignment does not imply joint development.
+**Created by 李玥滢 (Li Yueying), [lyyrebecca](https://github.com/lyyrebecca).** An individually created AI-law course project.
 
 A Skill, fixed local engine and browser-based local workbench for Chinese legal-document de-identification. After installing dependencies, daily processing requires no external LLM or API key. Reversible de-identification is not legal anonymization.
 
